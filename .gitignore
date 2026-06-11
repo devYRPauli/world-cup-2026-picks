@@ -13,3 +13,5 @@ pnpm-debug.log*
 .vercel
 vercel
 tsconfig.tsbuildinfo
+*.md
+!README.md
