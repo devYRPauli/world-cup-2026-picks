@@ -3,10 +3,10 @@ import { createServerClient } from "@supabase/ssr";
 import { requirePublicSupabaseEnv } from "@/lib/env";
 
 export async function createSupabaseServerClient() {
-  const { supabaseUrl, supabaseAnonKey } = requirePublicSupabaseEnv();
+  const { supabaseUrl, supabasePublishableKey } = requirePublicSupabaseEnv();
   const cookieStore = await cookies();
 
-  return createServerClient(supabaseUrl, supabaseAnonKey, {
+  return createServerClient(supabaseUrl, supabasePublishableKey, {
     cookies: {
       getAll() {
         return cookieStore.getAll();

@@ -1,11 +1,11 @@
 const requiredPublicKeys = [
   "NEXT_PUBLIC_SUPABASE_URL",
-  "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+  "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
 ] as const;
 
 const requiredServerKeys = [
   ...requiredPublicKeys,
-  "SUPABASE_SERVICE_ROLE_KEY"
+  "SUPABASE_SECRET_KEY"
 ] as const;
 
 type PublicEnvKey = (typeof requiredPublicKeys)[number];
@@ -14,8 +14,8 @@ type ServerEnvKey = (typeof requiredServerKeys)[number];
 export function getEnv() {
   return {
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    supabasePublishableKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+    supabaseSecretKey: process.env.SUPABASE_SECRET_KEY,
     footballDataToken: process.env.FOOTBALL_DATA_TOKEN,
     adminEmails: process.env.ADMIN_EMAILS,
     siteUrl: process.env.NEXT_PUBLIC_SITE_URL
@@ -46,7 +46,7 @@ export function requirePublicSupabaseEnv() {
 
   return {
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL as string,
-    supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
+    supabasePublishableKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY as string
   };
 }
 
@@ -58,8 +58,8 @@ export function requireServerSupabaseEnv() {
 
   return {
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL as string,
-    supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string,
-    supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY as string
+    supabasePublishableKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY as string,
+    supabaseSecretKey: process.env.SUPABASE_SECRET_KEY as string
   };
 }
 
@@ -69,4 +69,3 @@ export function getAdminEmails() {
     .map((email) => email.trim().toLowerCase())
     .filter(Boolean);
 }
-

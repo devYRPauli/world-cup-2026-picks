@@ -8,8 +8,8 @@ export function getSupabaseAdminClient() {
     return adminClient;
   }
 
-  const { supabaseUrl, supabaseServiceRoleKey } = requireServerSupabaseEnv();
-  adminClient = createClient(supabaseUrl, supabaseServiceRoleKey, {
+  const { supabaseUrl, supabaseSecretKey } = requireServerSupabaseEnv();
+  adminClient = createClient(supabaseUrl, supabaseSecretKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false
@@ -18,4 +18,3 @@ export function getSupabaseAdminClient() {
 
   return adminClient;
 }
-

@@ -32,8 +32,8 @@ This repo is safe to make public because it does not include secrets. To run it,
 3. Copy `.env.example` to `.env.local`.
 4. Fill in:
    - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+   - `SUPABASE_SECRET_KEY`
    - `ADMIN_EMAILS`
    - `POOL_INVITE_CODE` if you want to restrict signup to invited members
    - `FOOTBALL_DATA_TOKEN` if you want automated match imports
