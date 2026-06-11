@@ -2,16 +2,15 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Home, LayoutGrid, ListChecks, LogOut, Menu, ShieldCheck, Trophy, X } from "lucide-react";
+import { Home, LayoutGrid, LogOut, Menu, ShieldCheck, Trophy, X } from "lucide-react";
 import { signOutAction } from "@/app/auth/actions";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { ProfileRow } from "@/lib/types";
 
-type NavKey = "home" | "matches" | "groups" | "leaderboard" | "admin";
+type NavKey = "home" | "groups" | "leaderboard" | "admin";
 
 const NAV: { key: NavKey; label: string; href: string; icon: typeof Home }[] = [
   { key: "home", label: "Home", href: "/", icon: Home },
-  { key: "matches", label: "Match Days", href: "/?tab=matches", icon: ListChecks },
   { key: "groups", label: "Groups", href: "/?tab=groups", icon: LayoutGrid },
   { key: "leaderboard", label: "Leaderboard", href: "/?tab=leaderboard", icon: Trophy }
 ];

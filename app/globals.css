@@ -242,7 +242,7 @@ button {
 }
 
 .bar-actions {
-  display: flex;
+  display: none;
   align-items: center;
   gap: 6px;
 }
@@ -1336,6 +1336,10 @@ button {
 
   .nav {
     display: none;
+  }
+
+  .bar-actions {
+    display: flex;
   }
 
   .hamburger {

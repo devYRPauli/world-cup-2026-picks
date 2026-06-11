@@ -43,7 +43,7 @@ export default async function HomePage({
 
   const current = data.currentLeaderboardRow;
   const nextLockMinutes = data.nextMatch ? minutesUntil(data.nextMatch.starts_at) : null;
-  const activeNav = view === "matches" ? (params.tab === "matches" ? "matches" : "home") : view;
+  const activeNav = view === "matches" ? "home" : view;
 
   return (
     <main className="shell">
