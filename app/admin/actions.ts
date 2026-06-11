@@ -4,9 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireCurrentProfile } from "@/lib/auth";
 import { syncWorldCupMatches } from "@/lib/football-data";
-import { recalculateMatchPredictions } from "@/lib/results";
+import { recalculateGroupPredictions, recalculateMatchPredictions } from "@/lib/results";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
-import type { MatchStatus, Pick } from "@/lib/types";
+import type { MatchRow, MatchStatus, Pick } from "@/lib/types";
 
 const validStatuses = new Set<MatchStatus>(["SCHEDULED", "LIVE", "FINISHED", "POSTPONED"]);
 const validWinners = new Set<Pick>(["home", "draw", "away"]);
@@ -25,7 +25,7 @@ export async function syncMatchesAction() {
   revalidatePath("/admin");
   redirect(
     `/admin?message=${encodeURIComponent(
-      `Synced ${result.imported} matches; recalculated ${result.recalculated} picks.`
+      `Synced ${result.imported} matches; recalculated ${result.recalculated} match picks and ${result.groupRecalculated} group picks.`
     )}`
   );
 }
@@ -45,7 +45,7 @@ export async function updateMatchResultAction(formData: FormData) {
   }
 
   const supabase = getSupabaseAdminClient();
-  const { error } = await supabase
+  const { data: match, error } = await supabase
     .from("matches")
     .update({
       status,
@@ -53,13 +53,16 @@ export async function updateMatchResultAction(formData: FormData) {
       away_score: awayScore,
       result_winner: resultWinner
     })
-    .eq("id", matchId);
+    .eq("id", matchId)
+    .select("*")
+    .single<MatchRow>();
 
   if (error) {
     redirect(`/admin?error=${encodeURIComponent(error.message)}`);
   }
 
   await recalculateMatchPredictions(matchId);
+  await recalculateGroupPredictions(match.group_name ? [match.group_name] : undefined);
 
   revalidatePath("/");
   revalidatePath("/admin");
@@ -108,4 +111,3 @@ function getOptionalInteger(formData: FormData, key: string) {
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Something went wrong.";
 }
-

@@ -47,9 +47,25 @@ create table if not exists public.predictions (
   unique (match_id, user_id)
 );
 
+create table if not exists public.group_predictions (
+  id uuid primary key default gen_random_uuid(),
+  group_name text not null,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  picked_team_1 text not null,
+  picked_team_2 text not null,
+  points integer not null default 0,
+  is_scored boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  check (picked_team_1 <> picked_team_2),
+  unique (group_name, user_id)
+);
+
 create index if not exists matches_starts_at_idx on public.matches(starts_at);
 create index if not exists predictions_user_id_idx on public.predictions(user_id);
 create index if not exists predictions_match_id_idx on public.predictions(match_id);
+create index if not exists group_predictions_user_id_idx on public.group_predictions(user_id);
+create index if not exists group_predictions_group_name_idx on public.group_predictions(group_name);
 
 create or replace function public.set_updated_at()
 returns trigger
@@ -74,6 +90,11 @@ for each row execute function public.set_updated_at();
 drop trigger if exists predictions_set_updated_at on public.predictions;
 create trigger predictions_set_updated_at
 before update on public.predictions
+for each row execute function public.set_updated_at();
+
+drop trigger if exists group_predictions_set_updated_at on public.group_predictions;
+create trigger group_predictions_set_updated_at
+before update on public.group_predictions
 for each row execute function public.set_updated_at();
 
 create or replace function public.handle_new_user()
@@ -101,6 +122,7 @@ for each row execute function public.handle_new_user();
 alter table public.profiles enable row level security;
 alter table public.matches enable row level security;
 alter table public.predictions enable row level security;
+alter table public.group_predictions enable row level security;
 
 drop policy if exists "Profiles are visible to signed-in members" on public.profiles;
 create policy "Profiles are visible to signed-in members"
@@ -162,4 +184,63 @@ with check (
       and m.status = 'SCHEDULED'
       and m.starts_at > now()
   )
+);
+
+drop policy if exists "Members can read own group predictions" on public.group_predictions;
+create policy "Members can read own group predictions"
+on public.group_predictions for select
+to authenticated
+using (auth.uid() = user_id);
+
+drop policy if exists "Members can create own unlocked group predictions" on public.group_predictions;
+create policy "Members can create own unlocked group predictions"
+on public.group_predictions for insert
+to authenticated
+with check (
+  auth.uid() = user_id
+  and picked_team_1 <> picked_team_2
+  and exists (
+    select 1 from public.matches m
+    where m.group_name = group_predictions.group_name
+      and (m.home_team = picked_team_1 or m.away_team = picked_team_1)
+  )
+  and exists (
+    select 1 from public.matches m
+    where m.group_name = group_predictions.group_name
+      and (m.home_team = picked_team_2 or m.away_team = picked_team_2)
+  )
+  and (
+    select min(m.starts_at) from public.matches m
+    where m.group_name = group_predictions.group_name
+  ) > now()
+);
+
+drop policy if exists "Members can update own unlocked group predictions" on public.group_predictions;
+create policy "Members can update own unlocked group predictions"
+on public.group_predictions for update
+to authenticated
+using (
+  auth.uid() = user_id
+  and (
+    select min(m.starts_at) from public.matches m
+    where m.group_name = group_predictions.group_name
+  ) > now()
+)
+with check (
+  auth.uid() = user_id
+  and picked_team_1 <> picked_team_2
+  and exists (
+    select 1 from public.matches m
+    where m.group_name = group_predictions.group_name
+      and (m.home_team = picked_team_1 or m.away_team = picked_team_1)
+  )
+  and exists (
+    select 1 from public.matches m
+    where m.group_name = group_predictions.group_name
+      and (m.home_team = picked_team_2 or m.away_team = picked_team_2)
+  )
+  and (
+    select min(m.starts_at) from public.matches m
+    where m.group_name = group_predictions.group_name
+  ) > now()
 );

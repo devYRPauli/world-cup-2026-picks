@@ -10,6 +10,8 @@ World Cup 2026 Picks is built for friendly bragging-rights pools only. It does n
 - FIFA World Cup match import from football-data.org
 - Manual result entry fallback for admins
 - Pick winner/draw plus optional exact-score bonus
+- Pick top two teams from each group for bonus points
+- Matchday tabs for group-stage matches
 - Automatic scoring and leaderboard
 - Supabase Auth/Postgres backend
 - Vercel-friendly Next.js app
@@ -37,6 +39,7 @@ This repo is safe to make public because it does not include secrets. To run it,
    - `ADMIN_EMAILS`
    - `POOL_INVITE_CODE` if you want to restrict signup to invited members
    - `FOOTBALL_DATA_TOKEN` if you want automated match imports
+   - `CRON_SECRET` if you want scheduled result syncs
 5. Install dependencies and run:
 
 ```bash
@@ -58,6 +61,14 @@ Open `http://localhost:3000`.
 
 Add your email to `ADMIN_EMAILS`, sign up through the app, then visit `/admin`. The app promotes matching emails to admin on first access.
 
+## Existing database updates
+
+If you already deployed an earlier version, run the newest migration in Supabase SQL editor:
+
+```sql
+supabase/migrations/20260611_group_predictions.sql
+```
+
 ## Invite-only signup
 
 Set `POOL_INVITE_CODE` in Vercel and local env. New members will need that code when they join.
@@ -66,9 +77,16 @@ Set `POOL_INVITE_CODE` in Vercel and local env. New members will need that code 
 
 - Correct outcome: 3 points
 - Exact score bonus: 2 points
+- Correct group qualifier: 5 points per team
 - Wrong pick: 0 points
 
 Picks are for fun only. There is no money or wagering logic in the app.
+
+## Automated result sync
+
+The app includes a Vercel Cron Job at `/api/cron/sync-results`. Set `CRON_SECRET` in Vercel, then add the same value as the bearer token when testing the endpoint manually.
+
+The schedule in `vercel.json` runs every 30 minutes.
 
 ## License
 

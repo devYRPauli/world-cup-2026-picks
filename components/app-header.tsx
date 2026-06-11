@@ -12,7 +12,7 @@ export function AppHeader({ profile }: { profile: ProfileRow }) {
         </span>
         <span>
           <h1>World Cup 2026 Picks</h1>
-          <p>FIFA World Cup 2026 predictions</p>
+          <p>Match picks, group picks, and live points</p>
         </span>
       </Link>
       <nav className="topbar-actions" aria-label="Main navigation">

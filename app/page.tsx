@@ -1,27 +1,22 @@
-import Link from "next/link";
+import { GroupPicks } from "@/components/group-picks";
 import { AppHeader } from "@/components/app-header";
 import { Leaderboard } from "@/components/leaderboard";
 import { MatchCard } from "@/components/match-card";
+import { MatchdayTabs } from "@/components/matchday-tabs";
 import { SetupScreen } from "@/components/setup-screen";
 import { getDashboardData } from "@/lib/dashboard";
 import { getMissingServerEnv, hasServerSupabaseEnv } from "@/lib/env";
 import { minutesUntil } from "@/lib/format";
+import { getVisibleMatchdays, getVisibleMatches } from "@/lib/groups";
 import { requireCurrentProfile } from "@/lib/auth";
 import type { MatchRow } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-const filters = [
-  ["upcoming", "Upcoming"],
-  ["all", "All"],
-  ["finished", "Finished"],
-  ["locked", "Locked"]
-] as const;
-
 export default async function HomePage({
   searchParams
 }: {
-  searchParams: Promise<{ view?: string; message?: string; error?: string }>;
+  searchParams: Promise<{ tab?: string; message?: string; error?: string }>;
 }) {
   if (!hasServerSupabaseEnv()) {
     return <SetupScreen missing={getMissingServerEnv()} />;
@@ -33,9 +28,12 @@ export default async function HomePage({
   }
 
   const params = await searchParams;
-  const selectedView = filters.some(([key]) => key === params.view) ? params.view ?? "upcoming" : "upcoming";
   const data = await getDashboardData(session.user.id);
-  const shownMatches = filterMatches(data.matches, selectedView);
+  const visibleMatches = getVisibleMatches(data.matches);
+  const matchdays = getVisibleMatchdays(data.matches);
+  const defaultTab = getDefaultTab(visibleMatches, matchdays);
+  const selectedTab = isValidTab(params.tab, matchdays) ? params.tab ?? defaultTab : defaultTab;
+  const shownMatches = selectedTab === "groups" ? [] : filterMatchesByTab(visibleMatches, selectedTab);
   const current = data.currentLeaderboardRow;
   const nextLockMinutes = data.nextMatch ? minutesUntil(data.nextMatch.starts_at) : null;
 
@@ -66,31 +64,29 @@ export default async function HomePage({
 
       <div className="dashboard-grid">
         <section>
-          <nav className="filters" aria-label="Match filters">
-            {filters.map(([key, label]) => (
-              <Link
-                className={`filter-link ${selectedView === key ? "active" : ""}`}
-                href={key === "upcoming" ? "/" : `/?view=${key}`}
-                key={key}
-              >
-                {label}
-              </Link>
-            ))}
-          </nav>
-          <div className="match-list">
-            {shownMatches.length ? (
-              shownMatches.map((match) => (
-                <MatchCard
-                  key={match.id}
-                  match={match}
-                  prediction={data.userPredictionsByMatch.get(match.id)}
-                  stats={data.statsByMatch.get(match.id)}
-                />
-              ))
-            ) : (
-              <div className="empty-state">No matches in this view yet.</div>
-            )}
-          </div>
+          <MatchdayTabs matchdays={matchdays} selectedTab={selectedTab} />
+          {selectedTab === "groups" ? (
+            <GroupPicks
+              available={data.groupPicksAvailable}
+              groups={data.groups}
+              predictionsByGroup={data.userGroupPredictionsByGroup}
+            />
+          ) : (
+            <div className="match-list">
+              {shownMatches.length ? (
+                shownMatches.map((match) => (
+                  <MatchCard
+                    key={match.id}
+                    match={match}
+                    prediction={data.userPredictionsByMatch.get(match.id)}
+                    stats={data.statsByMatch.get(match.id)}
+                  />
+                ))
+              ) : (
+                <div className="empty-state">No known group-stage matches in this matchday yet.</div>
+              )}
+            </div>
+          )}
         </section>
         <Leaderboard rows={data.leaderboard} currentUserId={session.user.id} />
       </div>
@@ -98,26 +94,31 @@ export default async function HomePage({
   );
 }
 
-function filterMatches(matches: MatchRow[], view: string) {
+function getDefaultTab(matches: MatchRow[], matchdays: number[]) {
   const now = Date.now();
+  const nextMatch = matches.find((match) => new Date(match.starts_at).getTime() > now);
 
-  if (view === "finished") {
-    return matches.filter((match) => match.status === "FINISHED");
+  if (nextMatch?.matchday) {
+    return `md-${nextMatch.matchday}`;
   }
 
-  if (view === "locked") {
-    return matches.filter(
-      (match) => match.status !== "FINISHED" && new Date(match.starts_at).getTime() <= now
-    );
+  return matchdays[0] ? `md-${matchdays[0]}` : "groups";
+}
+
+function isValidTab(tab: string | undefined, matchdays: number[]) {
+  if (!tab) {
+    return true;
   }
 
-  if (view === "all") {
-    return matches;
+  return tab === "groups" || matchdays.some((matchday) => tab === `md-${matchday}`);
+}
+
+function filterMatchesByTab(matches: MatchRow[], tab: string) {
+  const matchday = Number.parseInt(tab.replace("md-", ""), 10);
+
+  if (Number.isNaN(matchday)) {
+    return [];
   }
 
-  const upcoming = matches.filter(
-    (match) => match.status === "SCHEDULED" && new Date(match.starts_at).getTime() > now
-  );
-
-  return upcoming.length ? upcoming : matches;
+  return matches.filter((match) => match.matchday === matchday);
 }

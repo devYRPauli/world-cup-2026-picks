@@ -34,7 +34,7 @@ export function Leaderboard({
                   </span>
                 </div>
                 <small>
-                  {row.correct}/{row.picks} correct | {row.exact_scores} exact
+                  {row.match_points} match | {row.group_points} bonus | {row.correct}/{row.picks} correct
                 </small>
               </div>
               <div className="points">

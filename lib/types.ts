@@ -48,14 +48,29 @@ export type PredictionRow = {
   updated_at: string;
 };
 
+export type GroupPredictionRow = {
+  id: string;
+  group_name: string;
+  user_id: string;
+  picked_team_1: string;
+  picked_team_2: string;
+  points: number;
+  is_scored: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
 export type LeaderboardRow = {
   user_id: string;
   display_name: string;
   avatar_color: string;
   points: number;
+  match_points: number;
+  group_points: number;
   correct: number;
   picks: number;
   exact_scores: number;
+  group_hits: number;
   rank: number;
 };
 
@@ -66,3 +81,30 @@ export type MatchPredictionStats = {
   away: number;
 };
 
+export type GroupTeam = {
+  name: string;
+  badge: string | null;
+};
+
+export type GroupStandingRow = {
+  team: string;
+  badge: string | null;
+  played: number;
+  points: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  goals_for: number;
+  goals_against: number;
+  goal_difference: number;
+};
+
+export type GroupView = {
+  name: string;
+  display_name: string;
+  teams: GroupTeam[];
+  starts_at: string | null;
+  is_locked: boolean;
+  is_complete: boolean;
+  standings: GroupStandingRow[];
+};

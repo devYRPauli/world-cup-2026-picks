@@ -1,5 +1,5 @@
 import { getEnv } from "@/lib/env";
-import { recalculateManyMatches } from "@/lib/results";
+import { recalculateGroupPredictions, recalculateManyMatches } from "@/lib/results";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { MatchRow, MatchStatus, Pick } from "@/lib/types";
 
@@ -79,11 +79,13 @@ export async function syncWorldCupMatches() {
     .map((match) => match.id);
 
   const recalculated = await recalculateManyMatches(finishedMatchIds);
+  const groupRecalculated = await recalculateGroupPredictions();
 
   return {
     imported: rows.length,
     finished: finishedMatchIds.length,
-    recalculated
+    recalculated,
+    groupRecalculated
   };
 }
 

@@ -1,5 +1,7 @@
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { buildGroups } from "@/lib/groups";
 import type {
+  GroupPredictionRow,
   LeaderboardRow,
   MatchPredictionStats,
   MatchRow,
@@ -30,9 +32,25 @@ export async function getDashboardData(currentUserId: string) {
   const matches = matchesResult.data ?? [];
   const predictions = predictionsResult.data ?? [];
   const profiles = profilesResult.data ?? [];
+  const groupPredictionsResult = await supabase
+    .from("group_predictions")
+    .select("*")
+    .returns<GroupPredictionRow[]>();
+  const groupPredictions =
+    groupPredictionsResult.error?.code === "42P01" ? [] : groupPredictionsResult.data ?? [];
+
+  if (groupPredictionsResult.error && groupPredictionsResult.error.code !== "42P01") {
+    throw new Error(groupPredictionsResult.error.message);
+  }
+
   const userPredictions = predictions.filter((prediction) => prediction.user_id === currentUserId);
   const userPredictionsByMatch = new Map(
     userPredictions.map((prediction) => [prediction.match_id, prediction])
+  );
+  const userGroupPredictionsByGroup = new Map(
+    groupPredictions
+      .filter((prediction) => prediction.user_id === currentUserId)
+      .map((prediction) => [prediction.group_name, prediction])
   );
 
   const statsByMatch = new Map<string, MatchPredictionStats>();
@@ -48,7 +66,8 @@ export async function getDashboardData(currentUserId: string) {
     statsByMatch.set(prediction.match_id, current);
   }
 
-  const leaderboard = buildLeaderboard(profiles, predictions);
+  const groups = buildGroups(matches);
+  const leaderboard = buildLeaderboard(profiles, predictions, groupPredictions);
   const currentLeaderboardRow = leaderboard.find((row) => row.user_id === currentUserId) ?? null;
   const nextMatch = matches.find(
     (match) => match.status === "SCHEDULED" && new Date(match.starts_at).getTime() > Date.now()
@@ -57,16 +76,24 @@ export async function getDashboardData(currentUserId: string) {
   return {
     matches,
     predictions,
+    groupPredictions,
     profiles,
+    groups,
     userPredictionsByMatch,
+    userGroupPredictionsByGroup,
     statsByMatch,
     leaderboard,
     currentLeaderboardRow,
-    nextMatch
+    nextMatch,
+    groupPicksAvailable: !groupPredictionsResult.error
   };
 }
 
-function buildLeaderboard(profiles: ProfileRow[], predictions: PredictionRow[]): LeaderboardRow[] {
+function buildLeaderboard(
+  profiles: ProfileRow[],
+  predictions: PredictionRow[],
+  groupPredictions: GroupPredictionRow[]
+): LeaderboardRow[] {
   const rows = new Map<string, LeaderboardRow>();
 
   for (const profile of profiles) {
@@ -75,9 +102,12 @@ function buildLeaderboard(profiles: ProfileRow[], predictions: PredictionRow[]):
       display_name: profile.display_name,
       avatar_color: profile.avatar_color,
       points: 0,
+      match_points: 0,
+      group_points: 0,
       correct: 0,
       picks: 0,
       exact_scores: 0,
+      group_hits: 0,
       rank: 0
     });
   }
@@ -88,7 +118,7 @@ function buildLeaderboard(profiles: ProfileRow[], predictions: PredictionRow[]):
       continue;
     }
 
-    row.points += prediction.points;
+    row.match_points += prediction.points;
     row.picks += 1;
 
     if (prediction.is_correct) {
@@ -98,6 +128,20 @@ function buildLeaderboard(profiles: ProfileRow[], predictions: PredictionRow[]):
     if (prediction.points === 5) {
       row.exact_scores += 1;
     }
+  }
+
+  for (const prediction of groupPredictions) {
+    const row = rows.get(prediction.user_id);
+    if (!row) {
+      continue;
+    }
+
+    row.group_points += prediction.points;
+    row.group_hits += prediction.points / 5;
+  }
+
+  for (const row of rows.values()) {
+    row.points = row.match_points + row.group_points;
   }
 
   return Array.from(rows.values())
@@ -114,4 +158,3 @@ function buildLeaderboard(profiles: ProfileRow[], predictions: PredictionRow[]):
     })
     .map((row, index) => ({ ...row, rank: index + 1 }));
 }
-
