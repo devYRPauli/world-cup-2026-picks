@@ -86,7 +86,7 @@ Picks are for fun only. There is no money or wagering logic in the app.
 
 The app includes a Vercel Cron Job at `/api/cron/sync-results`. Set `CRON_SECRET` in Vercel, then add the same value as the bearer token when testing the endpoint manually.
 
-The schedule in `vercel.json` runs once per day, which works on Vercel Hobby. For faster updates, use Vercel Pro or an external scheduler that calls the same endpoint with `Authorization: Bearer <CRON_SECRET>`.
+The schedule in `vercel.json` runs once per day at 9:00 AM Eastern during the World Cup, which works on Vercel Hobby. For faster updates, use Vercel Pro or an external scheduler that calls the same endpoint with `Authorization: Bearer <CRON_SECRET>`.
 
 ## License
 
