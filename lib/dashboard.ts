@@ -1,7 +1,9 @@
+import { unstable_cache } from "next/cache";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { buildGroups, getAdvancedTeams } from "@/lib/groups";
 import type {
   GroupPredictionRow,
+  GroupView,
   LeaderboardRow,
   MatchPredictionStats,
   MatchRow,
@@ -9,82 +11,112 @@ import type {
   ProfileRow
 } from "@/lib/types";
 
+// Bust this with revalidateTag(DASHBOARD_TAG) whenever picks or results change.
+export const DASHBOARD_TAG = "dashboard";
+
+type GlobalDashboard = {
+  matches: MatchRow[];
+  predictions: PredictionRow[];
+  groupPredictions: GroupPredictionRow[];
+  groups: GroupView[];
+  leaderboard: LeaderboardRow[];
+  statsByMatch: Record<string, MatchPredictionStats>;
+  advancedTeams: string[];
+  nextMatch: MatchRow | null;
+  groupPicksAvailable: boolean;
+};
+
+// The expensive part of the dashboard is identical for every user: four table
+// reads plus the leaderboard / standings / pool-split aggregation. Cache it once
+// (shared across users, revalidated on any write) and only slice per-user data
+// per request.
+const loadGlobalDashboard = unstable_cache(
+  async (): Promise<GlobalDashboard> => {
+    const supabase = getSupabaseAdminClient();
+    const [matchesResult, predictionsResult, profilesResult, groupPredictionsResult] = await Promise.all([
+      supabase.from("matches").select("*").order("starts_at", { ascending: true }).returns<MatchRow[]>(),
+      supabase.from("predictions").select("*").returns<PredictionRow[]>(),
+      supabase.from("profiles").select("*").order("display_name", { ascending: true }).returns<ProfileRow[]>(),
+      supabase.from("group_predictions").select("*").returns<GroupPredictionRow[]>()
+    ]);
+
+    if (matchesResult.error) {
+      throw new Error(matchesResult.error.message);
+    }
+    if (predictionsResult.error) {
+      throw new Error(predictionsResult.error.message);
+    }
+    if (profilesResult.error) {
+      throw new Error(profilesResult.error.message);
+    }
+
+    const groupPredictionsMissing = groupPredictionsResult.error?.code === "42P01";
+    if (groupPredictionsResult.error && !groupPredictionsMissing) {
+      throw new Error(groupPredictionsResult.error.message);
+    }
+
+    const matches = matchesResult.data ?? [];
+    const predictions = predictionsResult.data ?? [];
+    const profiles = profilesResult.data ?? [];
+    const groupPredictions = groupPredictionsMissing ? [] : groupPredictionsResult.data ?? [];
+
+    // Plain object (not a Map) so unstable_cache can serialize it.
+    const statsByMatch: Record<string, MatchPredictionStats> = {};
+    for (const prediction of predictions) {
+      const current = statsByMatch[prediction.match_id] ?? { total: 0, home: 0, draw: 0, away: 0 };
+      current.total += 1;
+      current[prediction.pick] += 1;
+      statsByMatch[prediction.match_id] = current;
+    }
+
+    const nextMatch =
+      matches.find(
+        (match) => match.status === "SCHEDULED" && new Date(match.starts_at).getTime() > Date.now()
+      ) ?? null;
+
+    return {
+      matches,
+      predictions,
+      groupPredictions,
+      groups: buildGroups(matches),
+      leaderboard: buildLeaderboard(profiles, predictions, groupPredictions),
+      statsByMatch,
+      advancedTeams: getAdvancedTeams(matches),
+      nextMatch,
+      groupPicksAvailable: !groupPredictionsMissing
+    };
+  },
+  ["dashboard-global-v1"],
+  { tags: [DASHBOARD_TAG], revalidate: 60 }
+);
+
 export async function getDashboardData(currentUserId: string) {
-  const supabase = getSupabaseAdminClient();
-  const [matchesResult, predictionsResult, profilesResult, groupPredictionsResult] = await Promise.all([
-    supabase.from("matches").select("*").order("starts_at", { ascending: true }).returns<MatchRow[]>(),
-    supabase.from("predictions").select("*").returns<PredictionRow[]>(),
-    supabase.from("profiles").select("*").order("display_name", { ascending: true }).returns<ProfileRow[]>(),
-    supabase.from("group_predictions").select("*").returns<GroupPredictionRow[]>()
-  ]);
+  const global = await loadGlobalDashboard();
 
-  if (matchesResult.error) {
-    throw new Error(matchesResult.error.message);
-  }
-
-  if (predictionsResult.error) {
-    throw new Error(predictionsResult.error.message);
-  }
-
-  if (profilesResult.error) {
-    throw new Error(profilesResult.error.message);
-  }
-
-  const matches = matchesResult.data ?? [];
-  const predictions = predictionsResult.data ?? [];
-  const profiles = profilesResult.data ?? [];
-  const groupPredictions =
-    groupPredictionsResult.error?.code === "42P01" ? [] : groupPredictionsResult.data ?? [];
-
-  if (groupPredictionsResult.error && groupPredictionsResult.error.code !== "42P01") {
-    throw new Error(groupPredictionsResult.error.message);
-  }
-
-  const userPredictions = predictions.filter((prediction) => prediction.user_id === currentUserId);
   const userPredictionsByMatch = new Map(
-    userPredictions.map((prediction) => [prediction.match_id, prediction])
+    global.predictions
+      .filter((prediction) => prediction.user_id === currentUserId)
+      .map((prediction) => [prediction.match_id, prediction])
   );
   const userGroupPredictionsByGroup = new Map(
-    groupPredictions
+    global.groupPredictions
       .filter((prediction) => prediction.user_id === currentUserId)
       .map((prediction) => [prediction.group_name, prediction])
   );
-
-  const statsByMatch = new Map<string, MatchPredictionStats>();
-  for (const prediction of predictions) {
-    const current = statsByMatch.get(prediction.match_id) ?? {
-      total: 0,
-      home: 0,
-      draw: 0,
-      away: 0
-    };
-    current.total += 1;
-    current[prediction.pick] += 1;
-    statsByMatch.set(prediction.match_id, current);
-  }
-
-  const groups = buildGroups(matches);
-  const advancedTeams = getAdvancedTeams(matches);
-  const leaderboard = buildLeaderboard(profiles, predictions, groupPredictions);
-  const currentLeaderboardRow = leaderboard.find((row) => row.user_id === currentUserId) ?? null;
-  const nextMatch = matches.find(
-    (match) => match.status === "SCHEDULED" && new Date(match.starts_at).getTime() > Date.now()
-  );
+  const statsByMatch = new Map(Object.entries(global.statsByMatch));
+  const currentLeaderboardRow = global.leaderboard.find((row) => row.user_id === currentUserId) ?? null;
 
   return {
-    matches,
-    predictions,
-    groupPredictions,
-    profiles,
-    groups,
-    advancedTeams,
+    matches: global.matches,
+    groups: global.groups,
+    advancedTeams: global.advancedTeams,
     userPredictionsByMatch,
     userGroupPredictionsByGroup,
     statsByMatch,
-    leaderboard,
+    leaderboard: global.leaderboard,
     currentLeaderboardRow,
-    nextMatch,
-    groupPicksAvailable: !groupPredictionsResult.error
+    nextMatch: global.nextMatch,
+    groupPicksAvailable: global.groupPicksAvailable
   };
 }
 

@@ -1,4 +1,6 @@
+import { revalidateTag } from "next/cache";
 import { NextResponse, type NextRequest } from "next/server";
+import { DASHBOARD_TAG } from "@/lib/dashboard";
 import { syncWorldCupMatches } from "@/lib/football-data";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +15,7 @@ export async function GET(request: NextRequest) {
   }
 
   const result = await syncWorldCupMatches();
+  revalidateTag(DASHBOARD_TAG);
 
   return NextResponse.json({
     ok: true,

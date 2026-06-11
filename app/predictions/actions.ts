@@ -1,8 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { DASHBOARD_TAG } from "@/lib/dashboard";
 import type { MatchRow, Pick } from "@/lib/types";
 
 export type SaveResult = { ok: true } | { ok: false; error: string };
@@ -58,6 +59,7 @@ export async function savePredictionAction(formData: FormData): Promise<SaveResu
   }
 
   // Refresh leaderboard / pool split in the background; the card already updated optimistically.
+  revalidateTag(DASHBOARD_TAG);
   revalidatePath("/");
   return { ok: true };
 }

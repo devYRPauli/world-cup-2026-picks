@@ -1,8 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireCurrentProfile } from "@/lib/auth";
+import { DASHBOARD_TAG } from "@/lib/dashboard";
 import { syncWorldCupMatches } from "@/lib/football-data";
 import { recalculateGroupPredictions, recalculateMatchPredictions } from "@/lib/results";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -21,6 +22,7 @@ export async function syncMatchesAction() {
     redirect(`/admin?error=${encodeURIComponent(getErrorMessage(error))}`);
   }
 
+  revalidateTag(DASHBOARD_TAG);
   revalidatePath("/");
   revalidatePath("/admin");
   redirect(
@@ -62,6 +64,7 @@ export async function updateMatchResultAction(formData: FormData) {
   await recalculateMatchPredictions(matchId);
   await recalculateGroupPredictions();
 
+  revalidateTag(DASHBOARD_TAG);
   revalidatePath("/");
   revalidatePath("/admin");
   redirect("/admin?message=Result%20updated.");
