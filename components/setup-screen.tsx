@@ -33,7 +33,7 @@ npm run dev`}</pre>
             <div className="card-top">
               <div className="meta">
                 <span>Group A</span>
-                <span className="dot">•</span>
+                <span className="dot">/</span>
                 <span>Matchday 1</span>
               </div>
               <span className="pill open">Open</span>

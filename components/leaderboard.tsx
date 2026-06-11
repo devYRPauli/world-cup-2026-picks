@@ -39,7 +39,7 @@ export function Leaderboard({
                     {row.user_id === currentUserId ? " (you)" : ""}
                   </span>
                   <span className="sub">
-                    {row.match_points} match · {row.group_points} bonus · {row.correct}/{row.picks} correct
+                    {row.match_points} match / {row.group_points} bonus / {row.correct}/{row.picks} correct
                   </span>
                 </div>
               </div>

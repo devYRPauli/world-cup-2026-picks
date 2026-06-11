@@ -156,7 +156,7 @@ function BrandMark() {
       <span className="mark" aria-hidden="true">26</span>
       <span>
         <span className="t1">World Cup 2026 Picks</span>
-        <span className="t2">Match picks · group picks · live points</span>
+        <span className="t2">Match picks / group picks / live points</span>
       </span>
     </>
   );

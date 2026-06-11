@@ -93,7 +93,7 @@ export function DashboardClient({
         <div className="stat">
           <div className="k">Your rank</div>
           <div className="v">
-            <span className="accent">{currentRow ? `#${currentRow.rank}` : "—"}</span>
+            <span className="accent">{currentRow ? `#${currentRow.rank}` : "-"}</span>
           </div>
           <div className="s">{profile.display_name}</div>
         </div>
@@ -102,14 +102,14 @@ export function DashboardClient({
           <div className="v tnum">{currentRow?.points ?? 0}</div>
           <div className="s">
             {currentRow
-              ? `${currentRow.correct}/${currentRow.picks} correct · ${currentRow.exact_scores} exact`
+              ? `${currentRow.correct}/${currentRow.picks} correct / ${currentRow.exact_scores} exact`
               : "No picks yet"}
           </div>
         </div>
         <div className="stat">
           <div className="k">Next lock</div>
           <div className="v tnum">
-            {nextLockMinutes === null ? "—" : nextLockMinutes <= 0 ? "Now" : formatCountdown(nextLockMinutes)}
+            {nextLockMinutes === null ? "-" : nextLockMinutes <= 0 ? "Now" : formatCountdown(nextLockMinutes)}
           </div>
           <div className="s">
             {nextMatch ? `${nextMatch.home_team} vs ${nextMatch.away_team}` : "No upcoming matches"}
@@ -149,7 +149,7 @@ export function DashboardClient({
                   </nav>
                 ) : null}
                 <p className="section-eyebrow">
-                  {md ? `Matchday ${md}` : "Matches"} · {shownMatches.length}{" "}
+                  {md ? `Matchday ${md}` : "Matches"} / {shownMatches.length}{" "}
                   {shownMatches.length === 1 ? "match" : "matches"}
                 </p>
                 {shownMatches.length ? (

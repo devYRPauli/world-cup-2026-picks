@@ -162,7 +162,7 @@ function GroupCard({
           </div>
           {isPending ? (
             <span className="saving-hint">
-              <span className="spinner" aria-hidden="true" /> Saving…
+              <span className="spinner" aria-hidden="true" /> Saving...
             </span>
           ) : (
             <button className="btn ghost" type="button" onClick={() => setEditing(true)}>

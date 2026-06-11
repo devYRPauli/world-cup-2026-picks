@@ -47,7 +47,7 @@ export default async function AdminPage({
           <h1>Match control</h1>
         </div>
         <form action={syncMatchesAction}>
-          <SubmitButton pendingLabel="Syncing…" icon={<RefreshCcw size={17} />}>
+          <SubmitButton pendingLabel="Syncing..." icon={<RefreshCcw size={17} />}>
             Sync fixtures
           </SubmitButton>
         </form>

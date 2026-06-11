@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 
 export function SubmitButton({
   children,
-  pendingLabel = "Saving…",
+  pendingLabel = "Saving...",
   className = "",
   icon
 }: {

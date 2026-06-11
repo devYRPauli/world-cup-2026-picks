@@ -43,7 +43,7 @@ export function MatchCard({
   const [isPending, startTransition] = useTransition();
 
   const hasScore = match.home_score !== null && match.away_score !== null;
-  const score = hasScore ? `${match.home_score}–${match.away_score}` : "vs";
+  const score = hasScore ? `${match.home_score}-${match.away_score}` : "vs";
   const showForm = !locked && (editing || !saved);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -81,11 +81,11 @@ export function MatchCard({
           <span>{match.group_name ? toTitleCase(match.group_name) : toTitleCase(match.stage)}</span>
           {match.matchday ? (
             <>
-              <span className="dot">•</span>
+              <span className="dot">/</span>
               <span>Matchday {match.matchday}</span>
             </>
           ) : null}
-          <span className="dot">•</span>
+          <span className="dot">/</span>
           <span>
             <CalendarDays size={13} /> {formatDateTime(match.starts_at)}
           </span>
@@ -161,13 +161,13 @@ export function MatchCard({
                 <Check size={18} />
               </span>
               <div>
-                <div className="l1">Your pick · {lockCountdown(match.starts_at)}</div>
+                <div className="l1">Your pick / {lockCountdown(match.starts_at)}</div>
                 <div className="l2">{saved ? pickScoreNode(saved, match) : null}</div>
               </div>
             </div>
             {isPending ? (
               <span className="saving-hint">
-                <span className="spinner" aria-hidden="true" /> Saving…
+                <span className="spinner" aria-hidden="true" /> Saving...
               </span>
             ) : (
               <button className="btn ghost" type="button" onClick={() => setEditing(true)}>
@@ -195,7 +195,7 @@ function parseIntOrNull(value: FormDataEntryValue | null): number | null {
 function pickScoreLabel(saved: SavedPick, match: MatchRow) {
   const base = pickLabel(saved.pick, match);
   if (saved.predicted_home_score !== null && saved.predicted_away_score !== null) {
-    return `${base} · ${saved.predicted_home_score}–${saved.predicted_away_score}`;
+    return `${base} / ${saved.predicted_home_score}-${saved.predicted_away_score}`;
   }
   return base;
 }
@@ -206,7 +206,7 @@ function pickScoreNode(saved: SavedPick, match: MatchRow) {
   return (
     <>
       <b>{base}</b>
-      {hasScore ? ` · ${saved.predicted_home_score}–${saved.predicted_away_score}` : ""}
+      {hasScore ? ` / ${saved.predicted_home_score}-${saved.predicted_away_score}` : ""}
     </>
   );
 }

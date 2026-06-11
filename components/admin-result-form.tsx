@@ -57,7 +57,7 @@ export function AdminResultForm({ match }: { match: MatchRow }) {
             <option value="POSTPONED">Postponed</option>
           </select>
         </div>
-        <SubmitButton pendingLabel="Saving…" icon={<Save size={17} />}>
+        <SubmitButton pendingLabel="Saving..." icon={<Save size={17} />}>
           Save
         </SubmitButton>
       </form>

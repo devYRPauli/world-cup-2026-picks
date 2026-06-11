@@ -73,7 +73,7 @@ export function AuthForm({
         </div>
         <SubmitButton
           className="block"
-          pendingLabel={isSignup ? "Creating account…" : "Signing in…"}
+          pendingLabel={isSignup ? "Creating account..." : "Signing in..."}
           icon={isSignup ? <UserPlus size={17} /> : <LogIn size={17} />}
         >
           {isSignup ? "Create account & sign in" : "Sign in"}
