@@ -7,18 +7,28 @@ import { signOutAction } from "@/app/auth/actions";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { ProfileRow } from "@/lib/types";
 
+export type DashboardView = "matches" | "groups" | "leaderboard";
 type NavKey = "home" | "groups" | "leaderboard" | "admin";
 
-const NAV: { key: NavKey; label: string; href: string; icon: typeof Home }[] = [
-  { key: "home", label: "Home", href: "/", icon: Home },
-  { key: "groups", label: "Groups", href: "/?tab=groups", icon: LayoutGrid },
-  { key: "leaderboard", label: "Leaderboard", href: "/?tab=leaderboard", icon: Trophy }
+const NAV: { key: NavKey; label: string; href: string; view: DashboardView; icon: typeof Home }[] = [
+  { key: "home", label: "Home", href: "/", view: "matches", icon: Home },
+  { key: "groups", label: "Groups", href: "/?tab=groups", view: "groups", icon: LayoutGrid },
+  { key: "leaderboard", label: "Leaderboard", href: "/?tab=leaderboard", view: "leaderboard", icon: Trophy }
 ];
 
-export function AppHeader({ profile, active }: { profile: ProfileRow; active?: NavKey }) {
+export function AppHeader({
+  profile,
+  active,
+  onNavigate
+}: {
+  profile: ProfileRow;
+  active?: NavKey;
+  // When provided (on the dashboard), primary nav switches views client-side
+  // instead of triggering a full server navigation + data refetch.
+  onNavigate?: (view: DashboardView) => void;
+}) {
   const [open, setOpen] = useState(false);
 
-  // Close the drawer on Escape and lock body scroll while it is open.
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
@@ -32,23 +42,41 @@ export function AppHeader({ profile, active }: { profile: ProfileRow; active?: N
 
   const isAdmin = profile.role === "admin";
 
+  function handleNav(view: DashboardView) {
+    setOpen(false);
+    onNavigate?.(view);
+  }
+
   return (
     <>
       <header className="topbar">
-        <Link className="brand" href="/" onClick={() => setOpen(false)}>
-          <span className="mark" aria-hidden="true">26</span>
-          <span>
-            <span className="t1">World Cup 2026 Picks</span>
-            <span className="t2">Match picks · group picks · live points</span>
-          </span>
-        </Link>
+        {onNavigate ? (
+          <button className="brand brand-btn" type="button" onClick={() => handleNav("matches")}>
+            <BrandMark />
+          </button>
+        ) : (
+          <Link className="brand" href="/" onClick={() => setOpen(false)}>
+            <BrandMark />
+          </Link>
+        )}
 
         <nav className="nav" aria-label="Primary">
-          {NAV.map((item) => (
-            <Link key={item.key} href={item.href} className={active === item.key ? "active" : ""}>
-              {item.label}
-            </Link>
-          ))}
+          {NAV.map((item) =>
+            onNavigate ? (
+              <button
+                key={item.key}
+                type="button"
+                className={`navbtn ${active === item.key ? "active" : ""}`}
+                onClick={() => handleNav(item.view)}
+              >
+                {item.label}
+              </button>
+            ) : (
+              <Link key={item.key} href={item.href} className={active === item.key ? "active" : ""}>
+                {item.label}
+              </Link>
+            )
+          )}
           {isAdmin ? (
             <Link href="/admin" className={active === "admin" ? "active" : ""}>
               Admin
@@ -81,7 +109,7 @@ export function AppHeader({ profile, active }: { profile: ProfileRow; active?: N
       <nav className={`drawer ${open ? "on" : ""}`} aria-label="Menu" aria-hidden={!open}>
         <div className="dhead">
           <span className="brand">
-            <span className="mark" aria-hidden="true">26</span>
+            <BrandMark />
           </span>
           <button className="icon-btn" type="button" onClick={() => setOpen(false)} aria-label="Close menu">
             <X size={20} />
@@ -90,13 +118,14 @@ export function AppHeader({ profile, active }: { profile: ProfileRow; active?: N
 
         {NAV.map((item) => {
           const Icon = item.icon;
-          return (
-            <Link
-              key={item.key}
-              href={item.href}
-              className={active === item.key ? "active" : ""}
-              onClick={() => setOpen(false)}
-            >
+          const className = active === item.key ? "active" : "";
+          return onNavigate ? (
+            <button key={item.key} type="button" className={`navbtn ${className}`} onClick={() => handleNav(item.view)}>
+              <Icon size={18} />
+              {item.label}
+            </button>
+          ) : (
+            <Link key={item.key} href={item.href} className={className} onClick={() => setOpen(false)}>
               <Icon size={18} />
               {item.label}
             </Link>
@@ -117,6 +146,18 @@ export function AppHeader({ profile, active }: { profile: ProfileRow; active?: N
           </button>
         </form>
       </nav>
+    </>
+  );
+}
+
+function BrandMark() {
+  return (
+    <>
+      <span className="mark" aria-hidden="true">26</span>
+      <span>
+        <span className="t1">World Cup 2026 Picks</span>
+        <span className="t2">Match picks · group picks · live points</span>
+      </span>
     </>
   );
 }

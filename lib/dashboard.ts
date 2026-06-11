@@ -11,10 +11,11 @@ import type {
 
 export async function getDashboardData(currentUserId: string) {
   const supabase = getSupabaseAdminClient();
-  const [matchesResult, predictionsResult, profilesResult] = await Promise.all([
+  const [matchesResult, predictionsResult, profilesResult, groupPredictionsResult] = await Promise.all([
     supabase.from("matches").select("*").order("starts_at", { ascending: true }).returns<MatchRow[]>(),
     supabase.from("predictions").select("*").returns<PredictionRow[]>(),
-    supabase.from("profiles").select("*").order("display_name", { ascending: true }).returns<ProfileRow[]>()
+    supabase.from("profiles").select("*").order("display_name", { ascending: true }).returns<ProfileRow[]>(),
+    supabase.from("group_predictions").select("*").returns<GroupPredictionRow[]>()
   ]);
 
   if (matchesResult.error) {
@@ -32,10 +33,6 @@ export async function getDashboardData(currentUserId: string) {
   const matches = matchesResult.data ?? [];
   const predictions = predictionsResult.data ?? [];
   const profiles = profilesResult.data ?? [];
-  const groupPredictionsResult = await supabase
-    .from("group_predictions")
-    .select("*")
-    .returns<GroupPredictionRow[]>();
   const groupPredictions =
     groupPredictionsResult.error?.code === "42P01" ? [] : groupPredictionsResult.data ?? [];
 

@@ -180,7 +180,8 @@ button {
   gap: 4px;
 }
 
-.nav a {
+.nav a,
+.nav .navbtn {
   padding: 9px 15px;
   border-radius: 11px;
   font-weight: 700;
@@ -189,12 +190,29 @@ button {
   transition: background 0.15s, color 0.15s;
 }
 
-.nav a:hover {
+.navbtn {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.brand-btn {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+  padding: 0;
+}
+
+.nav a:hover,
+.nav .navbtn:hover {
   background: var(--accent-soft);
   color: var(--ink);
 }
 
-.nav a.active {
+.nav a.active,
+.nav .navbtn.active {
   background: var(--accent-soft);
   color: var(--accent-deep);
 }
@@ -1222,22 +1240,28 @@ button {
   margin-bottom: 14px;
 }
 
-.drawer a {
+.drawer a,
+.drawer .navbtn {
   padding: 13px 14px;
   border-radius: 12px;
   font-weight: 700;
+  font-size: 1rem;
   color: var(--ink);
   display: flex;
   align-items: center;
   gap: 11px;
+  width: 100%;
+  text-align: left;
 }
 
-.drawer a.active {
+.drawer a.active,
+.drawer .navbtn.active {
   background: var(--accent-soft);
   color: var(--accent-deep);
 }
 
-.drawer a:hover:not(.active) {
+.drawer a:hover:not(.active),
+.drawer .navbtn:hover:not(.active) {
   background: var(--accent-soft);
 }
 
