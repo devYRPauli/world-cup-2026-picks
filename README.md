@@ -1,0 +1,75 @@
+# Lab Cup
+
+A self-hostable FIFA World Cup 2026 prediction pool for small groups. Members make picks for each match, picks lock at kickoff, admins enter or sync results, and the leaderboard updates automatically.
+
+Lab Cup is built for friendly bragging-rights pools only. It does not include odds, payments, payouts, or real-money wagering.
+
+## Features
+
+- Email/password sign up with optional shared invite code
+- FIFA World Cup match import from football-data.org
+- Manual result entry fallback for admins
+- Pick winner/draw plus optional exact-score bonus
+- Automatic scoring and leaderboard
+- Supabase Auth/Postgres backend
+- Vercel-friendly Next.js app
+
+## Stack
+
+- Next.js app router
+- Supabase Auth and Postgres
+- Vercel hosting
+- football-data.org match sync, with manual result editing as fallback
+
+## Bring your own keys
+
+This repo is safe to make public because it does not include secrets. To run it, each deployment needs its own Supabase project and optional football-data.org API token.
+
+## Local setup
+
+1. Create a Supabase project.
+2. Run `supabase/schema.sql` in the Supabase SQL editor.
+3. Copy `.env.example` to `.env.local`.
+4. Fill in:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `ADMIN_EMAILS`
+   - `LAB_INVITE_CODE` if you want to restrict signup to lab members
+   - `FOOTBALL_DATA_TOKEN` if you want automated match imports
+5. Install dependencies and run:
+
+```bash
+npm install
+npm run dev
+```
+
+Open `http://localhost:3000`.
+
+## Vercel deployment
+
+1. Import the GitHub repo into Vercel.
+2. Add the same environment variables from `.env.example`.
+3. Set `NEXT_PUBLIC_SITE_URL` to the deployed site URL.
+4. In Supabase Auth settings, add the deployed callback URL:
+   `https://your-domain.vercel.app/auth/callback`
+
+## Admin setup
+
+Add your email to `ADMIN_EMAILS`, sign up through the app, then visit `/admin`. The app promotes matching emails to admin on first access.
+
+## Lab-only signup
+
+Set `LAB_INVITE_CODE` in Vercel and Supabase local env. New members will need that code when they join.
+
+## Scoring
+
+- Correct outcome: 3 points
+- Exact score bonus: 2 points
+- Wrong pick: 0 points
+
+Picks are for fun only. There is no money or wagering logic in the app.
+
+## License
+
+MIT
