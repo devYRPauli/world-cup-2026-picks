@@ -54,7 +54,7 @@ export async function saveGroupPredictionAction(formData: FormData) {
     redirect("/?tab=groups&error=Choose%20teams%20from%20that%20group.");
   }
 
-  const { error } = await admin.from("group_predictions").upsert(
+  const { error } = await supabase.from("group_predictions").upsert(
     {
       group_name: groupName,
       user_id: user.id,
