@@ -1,3 +1,4 @@
+import { CalendarClock } from "lucide-react";
 import { GroupPicks } from "@/components/group-picks";
 import { AppHeader } from "@/components/app-header";
 import { Leaderboard } from "@/components/leaderboard";
@@ -13,10 +14,12 @@ import type { MatchRow } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
+type View = "matches" | "groups" | "leaderboard";
+
 export default async function HomePage({
   searchParams
 }: {
-  searchParams: Promise<{ tab?: string; message?: string; error?: string }>;
+  searchParams: Promise<{ tab?: string; md?: string; message?: string; error?: string }>;
 }) {
   if (!hasServerSupabaseEnv()) {
     return <SetupScreen missing={getMissingServerEnv()} />;
@@ -31,94 +34,124 @@ export default async function HomePage({
   const data = await getDashboardData(session.user.id);
   const visibleMatches = getVisibleMatches(data.matches);
   const matchdays = getVisibleMatchdays(data.matches);
-  const defaultTab = getDefaultTab(visibleMatches, matchdays);
-  const selectedTab = isValidTab(params.tab, matchdays) ? params.tab ?? defaultTab : defaultTab;
-  const shownMatches = selectedTab === "groups" ? [] : filterMatchesByTab(visibleMatches, selectedTab);
+
+  const view = resolveView(params.tab);
+  const selectedMatchday = resolveMatchday(params.md, visibleMatches, matchdays);
+  const shownMatches = selectedMatchday
+    ? visibleMatches.filter((match) => match.matchday === selectedMatchday)
+    : [];
+
   const current = data.currentLeaderboardRow;
   const nextLockMinutes = data.nextMatch ? minutesUntil(data.nextMatch.starts_at) : null;
+  const activeNav = view === "matches" ? (params.tab === "matches" ? "matches" : "home") : view;
 
   return (
-    <main className="page-shell">
-      <AppHeader profile={session.profile} />
+    <main className="shell">
+      <AppHeader profile={session.profile} active={activeNav} />
 
-      {params.message ? <div className="notice">{params.message}</div> : null}
-      {params.error ? <div className="notice error">{params.error}</div> : null}
+      {params.message ? <Notice text={params.message} /> : null}
+      {params.error ? <Notice text={params.error} error /> : null}
 
-      <section className="summary-band" aria-label="Your summary">
-        <div className="summary-card">
-          <span>Your rank</span>
-          <strong>{current ? `#${current.rank}` : "-"}</strong>
-          <p>{session.profile.display_name}</p>
+      <section className="summary" aria-label="Your summary">
+        <div className="stat">
+          <div className="k">Your rank</div>
+          <div className="v">
+            <span className="accent">{current ? `#${current.rank}` : "—"}</span>
+          </div>
+          <div className="s">{session.profile.display_name}</div>
         </div>
-        <div className="summary-card">
-          <span>Your points</span>
-          <strong>{current?.points ?? 0}</strong>
-          <p>{current ? `${current.correct}/${current.picks} correct` : "No picks yet"}</p>
+        <div className="stat">
+          <div className="k">Your points</div>
+          <div className="v tnum">{current?.points ?? 0}</div>
+          <div className="s">
+            {current ? `${current.correct}/${current.picks} correct · ${current.exact_scores} exact` : "No picks yet"}
+          </div>
         </div>
-        <div className="summary-card">
-          <span>Next lock</span>
-          <strong>{nextLockMinutes === null ? "-" : nextLockMinutes <= 0 ? "Now" : `${nextLockMinutes}m`}</strong>
-          <p>{data.nextMatch ? `${data.nextMatch.home_team} vs ${data.nextMatch.away_team}` : "No upcoming matches"}</p>
+        <div className="stat">
+          <div className="k">Next lock</div>
+          <div className="v tnum">
+            {nextLockMinutes === null ? "—" : nextLockMinutes <= 0 ? "Now" : formatCountdown(nextLockMinutes)}
+          </div>
+          <div className="s">
+            {data.nextMatch ? `${data.nextMatch.home_team} vs ${data.nextMatch.away_team}` : "No upcoming matches"}
+          </div>
         </div>
       </section>
 
-      <div className="dashboard-grid">
-        <section>
-          <MatchdayTabs matchdays={matchdays} selectedTab={selectedTab} />
-          {selectedTab === "groups" ? (
-            <GroupPicks
-              available={data.groupPicksAvailable}
-              groups={data.groups}
-              predictionsByGroup={data.userGroupPredictionsByGroup}
-            />
-          ) : (
-            <div className="match-list">
-              {shownMatches.length ? (
-                shownMatches.map((match) => (
-                  <MatchCard
-                    key={match.id}
-                    match={match}
-                    prediction={data.userPredictionsByMatch.get(match.id)}
-                    stats={data.statsByMatch.get(match.id)}
-                  />
-                ))
-              ) : (
-                <div className="empty-state">No known group-stage matches in this matchday yet.</div>
-              )}
-            </div>
-          )}
-        </section>
-        <Leaderboard rows={data.leaderboard} currentUserId={session.user.id} />
-      </div>
+      {view === "leaderboard" ? (
+        <Leaderboard rows={data.leaderboard} currentUserId={session.user.id} variant="full" />
+      ) : (
+        <div className="layout">
+          <section>
+            {view === "groups" ? (
+              <>
+                <p className="section-eyebrow">Group qualifier picks</p>
+                <GroupPicks
+                  available={data.groupPicksAvailable}
+                  groups={data.groups}
+                  predictionsByGroup={data.userGroupPredictionsByGroup}
+                />
+              </>
+            ) : (
+              <>
+                <MatchdayTabs matchdays={matchdays} selectedMatchday={selectedMatchday} />
+                <p className="section-eyebrow">
+                  {selectedMatchday ? `Matchday ${selectedMatchday}` : "Matches"} · {shownMatches.length}{" "}
+                  {shownMatches.length === 1 ? "match" : "matches"}
+                </p>
+                {shownMatches.length ? (
+                  <div className="cards">
+                    {shownMatches.map((match) => (
+                      <MatchCard
+                        key={match.id}
+                        match={match}
+                        prediction={data.userPredictionsByMatch.get(match.id)}
+                        stats={data.statsByMatch.get(match.id)}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="empty-state">
+                    <CalendarClock size={22} style={{ opacity: 0.6, marginBottom: 8 }} />
+                    <div>No known group-stage matches here yet. Sync fixtures from the admin page.</div>
+                  </div>
+                )}
+              </>
+            )}
+          </section>
+          <Leaderboard rows={data.leaderboard} currentUserId={session.user.id} />
+        </div>
+      )}
     </main>
   );
 }
 
-function getDefaultTab(matches: MatchRow[], matchdays: number[]) {
+function Notice({ text, error }: { text: string; error?: boolean }) {
+  return <div className={`notice ${error ? "error" : ""}`}>{text}</div>;
+}
+
+function resolveView(tab: string | undefined): View {
+  if (tab === "groups") return "groups";
+  if (tab === "leaderboard") return "leaderboard";
+  return "matches";
+}
+
+function resolveMatchday(md: string | undefined, matches: MatchRow[], matchdays: number[]): number | null {
+  if (md) {
+    const parsed = Number.parseInt(md, 10);
+    if (matchdays.includes(parsed)) return parsed;
+  }
+
   const now = Date.now();
-  const nextMatch = matches.find((match) => new Date(match.starts_at).getTime() > now);
+  const next = matches.find((match) => new Date(match.starts_at).getTime() > now);
+  if (next?.matchday && matchdays.includes(next.matchday)) return next.matchday;
 
-  if (nextMatch?.matchday) {
-    return `md-${nextMatch.matchday}`;
-  }
-
-  return matchdays[0] ? `md-${matchdays[0]}` : "groups";
+  return matchdays[0] ?? null;
 }
 
-function isValidTab(tab: string | undefined, matchdays: number[]) {
-  if (!tab) {
-    return true;
-  }
-
-  return tab === "groups" || matchdays.some((matchday) => tab === `md-${matchday}`);
-}
-
-function filterMatchesByTab(matches: MatchRow[], tab: string) {
-  const matchday = Number.parseInt(tab.replace("md-", ""), 10);
-
-  if (Number.isNaN(matchday)) {
-    return [];
-  }
-
-  return matches.filter((match) => match.matchday === matchday);
+function formatCountdown(mins: number) {
+  if (mins < 60) return `${mins}m`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours}h`;
+  return `${Math.round(hours / 24)}d`;
 }

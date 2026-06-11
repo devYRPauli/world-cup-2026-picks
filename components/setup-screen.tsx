@@ -1,56 +1,60 @@
-import { Trophy } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export function SetupScreen({ missing }: { missing: string[] }) {
   return (
-    <main className="setup-wrap">
+    <main className="center-wrap">
+      <div className="float-toggle">
+        <ThemeToggle />
+      </div>
       <section className="setup-panel">
+        <div className="brand">
+          <span className="mark" aria-hidden="true">26</span>
+          <span>
+            <span className="t1">World Cup 2026 Picks</span>
+          </span>
+        </div>
+        <h1>Finish the setup</h1>
+        <p className="lede">Add your Supabase credentials to start the pool.</p>
+
         <div className="setup-grid">
-          <div>
-            <div className="brand">
-              <span className="brand-mark" aria-hidden="true">
-                <Trophy size={24} />
-              </span>
-              <span>
-                <h1>World Cup 2026 Picks</h1>
-                <p>Finish the Supabase setup to start the pool.</p>
-              </span>
-            </div>
-            <p>
-              Missing environment variables: <strong>{missing.join(", ")}</strong>
+          <div className="stack">
+            <p style={{ margin: 0, color: "var(--muted)" }}>
+              Missing environment variables:
             </p>
+            <p style={{ margin: 0, fontWeight: 700 }}>{missing.join(", ")}</p>
             <div className="code-block">
               <pre>{`cp .env.example .env.local
 npm install
 npm run dev`}</pre>
             </div>
           </div>
-          <div className="match-list">
-            <article className="match-card">
-              <div className="match-topline">
-                <div className="match-meta">
-                  <span>Group A</span>
-                  <span>Matchday 1</span>
-                </div>
-                <span className="status-pill">Open</span>
+
+          <div className="card">
+            <div className="card-top">
+              <div className="meta">
+                <span>Group A</span>
+                <span className="dot">•</span>
+                <span>Matchday 1</span>
               </div>
-              <div className="match-body">
-                <div className="teams">
-                  <div className="team">
-                    <span className="badge">MEX</span>
-                    <span className="team-name">Mexico</span>
-                  </div>
-                  <div className="score-box">
-                    vs
-                    <span>pick</span>
-                  </div>
-                  <div className="team away">
-                    <span className="team-name">South Africa</span>
-                    <span className="badge">RSA</span>
-                  </div>
+              <span className="pill open">Open</span>
+            </div>
+            <div className="card-body">
+              <div className="teams">
+                <div className="team">
+                  <span className="flag">MEX</span>
+                  <span className="team-name">Mexico</span>
                 </div>
-                <div className="saved-pick">Bragging rights only. No money, no odds.</div>
+                <div className="vs">
+                  <div className="score">vs</div>
+                  <div className="lbl">pick</div>
+                </div>
+                <div className="team away">
+                  <span className="team-name">S. Africa</span>
+                  <span className="flag">RSA</span>
+                </div>
               </div>
-            </article>
+              <div className="lockedrow">Bragging rights only. No money, no odds.</div>
+            </div>
           </div>
         </div>
       </section>

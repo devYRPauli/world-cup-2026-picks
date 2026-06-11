@@ -1,45 +1,51 @@
-import { Medal } from "lucide-react";
+import { Trophy } from "lucide-react";
 import type { LeaderboardRow } from "@/lib/types";
 
 export function Leaderboard({
   rows,
-  currentUserId
+  currentUserId,
+  variant = "sidebar"
 }: {
   rows: LeaderboardRow[];
   currentUserId: string;
+  variant?: "sidebar" | "full";
 }) {
-  return (
-    <aside className="panel">
-      <div className="member-line">
-        <Medal size={20} color="var(--gold)" />
+  const className = variant === "full" ? "lb-full" : "aside";
+
+  const body = (
+    <>
+      <div className="panel-head">
+        <span className="ico" aria-hidden="true">
+          <Trophy size={20} />
+        </span>
         <h2>Leaderboard</h2>
       </div>
-      <div className="leaderboard-list">
+      <div className="lb">
         {rows.length ? (
           rows.map((row) => (
             <div
-              className="leaderboard-row"
+              className={`lb-row ${row.user_id === currentUserId ? "me" : ""} ${row.rank === 1 ? "top" : ""}`}
               key={row.user_id}
               aria-current={row.user_id === currentUserId ? "true" : undefined}
             >
-              <div className="rank-badge">{row.rank}</div>
-              <div>
-                <div className="member-line">
-                  <span className="avatar" style={{ background: row.avatar_color }}>
-                    {initials(row.display_name)}
-                  </span>
-                  <span className="member-name">
+              <div className="rank">{row.rank}</div>
+              <div className="who">
+                <span className="av" style={{ background: row.avatar_color }}>
+                  {initials(row.display_name)}
+                </span>
+                <div style={{ minWidth: 0 }}>
+                  <span className="nm">
                     {row.display_name}
                     {row.user_id === currentUserId ? " (you)" : ""}
                   </span>
+                  <span className="sub">
+                    {row.match_points} match · {row.group_points} bonus · {row.correct}/{row.picks} correct
+                  </span>
                 </div>
-                <small>
-                  {row.match_points} match | {row.group_points} bonus | {row.correct}/{row.picks} correct
-                </small>
               </div>
-              <div className="points">
+              <div className="pts2 tnum">
                 {row.points}
-                <small> pts</small>
+                <small>PTS</small>
               </div>
             </div>
           ))
@@ -47,7 +53,13 @@ export function Leaderboard({
           <div className="empty-state">No picks yet.</div>
         )}
       </div>
-    </aside>
+    </>
+  );
+
+  return variant === "full" ? (
+    <section className={className}>{body}</section>
+  ) : (
+    <aside className={className}>{body}</aside>
   );
 }
 

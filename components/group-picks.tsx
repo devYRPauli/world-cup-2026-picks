@@ -1,5 +1,9 @@
-import { Lock, Save, Trophy } from "lucide-react";
+"use client";
+
+import { useState } from "react";
+import { Check, Lock, Pencil, Trophy } from "lucide-react";
 import { saveGroupPredictionAction } from "@/app/group-picks/actions";
+import { SubmitButton } from "@/components/submit-button";
 import { formatShortDate } from "@/lib/format";
 import type { GroupPredictionRow, GroupView } from "@/lib/types";
 
@@ -26,76 +30,112 @@ export function GroupPicks({
 
   return (
     <section className="group-grid" aria-label="Group qualification picks">
-      {groups.map((group) => {
-        const prediction = predictionsByGroup.get(group.name);
-
-        return (
-          <article className="group-card" key={group.name}>
-            <div className="group-card-head">
-              <div>
-                <span className="eyebrow">{group.display_name}</span>
-                <h2>Top two</h2>
-              </div>
-              <span className={`status-pill ${group.is_locked ? "locked" : ""}`}>
-                {group.is_locked ? "Locked" : group.starts_at ? `Locks ${formatShortDate(group.starts_at)}` : "Open"}
-              </span>
-            </div>
-
-            {group.is_locked ? (
-              <div className="saved-pick">
-                <Lock size={17} />
-                {prediction ? (
-                  <>
-                    {prediction.picked_team_1} and {prediction.picked_team_2}
-                    {prediction.is_scored ? ` | ${prediction.points} pts` : ""}
-                  </>
-                ) : (
-                  "No saved top-two pick"
-                )}
-              </div>
-            ) : (
-              <form action={saveGroupPredictionAction} className="group-pick-form">
-                <input name="group_name" type="hidden" value={group.name} />
-                <TeamSelect
-                  groupName={group.name}
-                  label="First qualifier"
-                  name="picked_team_1"
-                  teams={group.teams}
-                  value={prediction?.picked_team_1}
-                />
-                <TeamSelect
-                  groupName={group.name}
-                  label="Second qualifier"
-                  name="picked_team_2"
-                  teams={group.teams}
-                  value={prediction?.picked_team_2}
-                />
-                <button className="button primary" type="submit">
-                  <Save size={17} />
-                  Save
-                </button>
-              </form>
-            )}
-
-            <div className="standings-list">
-              {group.standings.map((row, index) => (
-                <div className="standing-row" key={row.team}>
-                  <span className="rank-badge">{index + 1}</span>
-                  <span className="standing-team">
-                    {index < 2 && group.is_complete ? <Trophy size={15} /> : null}
-                    {row.team}
-                  </span>
-                  <span>{row.played}</span>
-                  <span>{row.goal_difference}</span>
-                  <strong>{row.points}</strong>
-                </div>
-              ))}
-            </div>
-          </article>
-        );
-      })}
+      {groups.map((group) => (
+        <GroupCard key={group.name} group={group} prediction={predictionsByGroup.get(group.name)} />
+      ))}
     </section>
   );
+}
+
+function GroupCard({ group, prediction }: { group: GroupView; prediction?: GroupPredictionRow }) {
+  const [editing, setEditing] = useState(false);
+  const showForm = !group.is_locked && (editing || !prediction);
+
+  return (
+    <article className="group-card">
+      <div className="group-card-head">
+        <div>
+          <div className="eyebrow">{group.display_name}</div>
+          <h2>Top two qualifiers</h2>
+        </div>
+        <span className={`pill ${group.is_locked ? "locked" : "open"}`}>
+          {group.is_locked ? "Locked" : group.starts_at ? `Locks ${formatShortDate(group.starts_at)}` : "Open"}
+        </span>
+      </div>
+
+      {showForm ? (
+        <form action={saveGroupPredictionAction} className="group-pick-form">
+          <input name="group_name" type="hidden" value={group.name} />
+          <TeamSelect
+            groupName={group.name}
+            label="First qualifier"
+            name="picked_team_1"
+            teams={group.teams}
+            value={prediction?.picked_team_1}
+          />
+          <TeamSelect
+            groupName={group.name}
+            label="Second qualifier"
+            name="picked_team_2"
+            teams={group.teams}
+            value={prediction?.picked_team_2}
+          />
+          <SubmitButton pendingLabel="Saving…" icon={<Check size={17} />}>
+            {prediction ? "Update" : "Save picks"}
+          </SubmitButton>
+        </form>
+      ) : group.is_locked ? (
+        <div className="lockedrow">
+          <Lock size={15} />
+          {prediction ? (
+            <>
+              You picked <b>{prediction.picked_team_1}</b> &amp; <b>{prediction.picked_team_2}</b>
+            </>
+          ) : (
+            <span>No picks saved</span>
+          )}
+          {prediction?.is_scored ? <span className="pts">+{prediction.points} pts</span> : null}
+        </div>
+      ) : (
+        <div className="saved">
+          <div className="saved-info">
+            <span className="check" aria-hidden="true">
+              <Check size={18} />
+            </span>
+            <div>
+              <div className="l1">Your qualifiers</div>
+              <div className="l2">
+                <b>{prediction?.picked_team_1}</b> &amp; <b>{prediction?.picked_team_2}</b>
+              </div>
+            </div>
+          </div>
+          <button className="btn ghost" type="button" onClick={() => setEditing(true)}>
+            <Pencil size={15} />
+            Edit
+          </button>
+        </div>
+      )}
+
+      <div className="standings">
+        <div className="standing standing-head">
+          <span className="pos">#</span>
+          <span className="tm">Team</span>
+          <span>P</span>
+          <span>GD</span>
+          <strong>Pts</strong>
+        </div>
+        {group.standings.map((row, index) => {
+          const qualifies = index < 2;
+          return (
+            <div className={`standing ${qualifies ? "qualify" : ""}`} key={row.team}>
+              <span className="pos">{index + 1}</span>
+              <span className="tm">
+                {qualifies && group.is_complete ? <Trophy size={14} /> : null}
+                {row.team}
+              </span>
+              <span>{row.played}</span>
+              <span>{formatGd(row.goal_difference)}</span>
+              <strong>{row.points}</strong>
+            </div>
+          );
+        })}
+      </div>
+    </article>
+  );
+}
+
+function formatGd(gd: number) {
+  return gd > 0 ? `+${gd}` : `${gd}`;
 }
 
 function TeamSelect({

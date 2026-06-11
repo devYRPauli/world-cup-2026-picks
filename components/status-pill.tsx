@@ -8,21 +8,20 @@ export function StatusPill({
   locked?: boolean;
 }) {
   if (status === "FINISHED") {
-    return <span className="status-pill finished">Final</span>;
+    return <span className="pill final">Final</span>;
   }
 
   if (status === "LIVE") {
-    return <span className="status-pill live">Live</span>;
-  }
-
-  if (locked) {
-    return <span className="status-pill locked">Locked</span>;
+    return <span className="pill live">Live</span>;
   }
 
   if (status === "POSTPONED") {
-    return <span className="status-pill">Postponed</span>;
+    return <span className="pill postponed">Postponed</span>;
   }
 
-  return <span className="status-pill">Open</span>;
-}
+  if (locked) {
+    return <span className="pill locked">Locked</span>;
+  }
 
+  return <span className="pill open">Open</span>;
+}

@@ -3,6 +3,7 @@ import { AuthForm } from "@/app/auth/auth-form";
 import { getMissingServerEnv, hasPublicSupabaseEnv } from "@/lib/env";
 import { getCurrentProfile } from "@/lib/auth";
 import { SetupScreen } from "@/components/setup-screen";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,10 @@ export default async function AuthPage({
   const params = await searchParams;
 
   return (
-    <main className="auth-wrap">
+    <main className="center-wrap">
+      <div className="float-toggle">
+        <ThemeToggle />
+      </div>
       <AuthForm message={params.message} error={params.error} />
     </main>
   );

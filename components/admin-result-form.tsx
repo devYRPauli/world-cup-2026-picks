@@ -1,22 +1,23 @@
 import { Save } from "lucide-react";
 import { updateMatchResultAction } from "@/app/admin/actions";
+import { SubmitButton } from "@/components/submit-button";
 import { formatDateTime } from "@/lib/format";
 import type { MatchRow } from "@/lib/types";
 import { StatusPill } from "@/components/status-pill";
 
 export function AdminResultForm({ match }: { match: MatchRow }) {
   return (
-    <div className="admin-match-row">
+    <div className="admin-row">
       <div>
-        <div className="admin-match-title">
+        <div className="title">
           {match.home_team} vs {match.away_team}
         </div>
-        <p className="match-meta">
+        <p className="meta">
           <span>{formatDateTime(match.starts_at)}</span>
           <StatusPill status={match.status} />
         </p>
       </div>
-      <form action={updateMatchResultAction} className="admin-form-grid">
+      <form action={updateMatchResultAction} className="admin-form">
         <input name="match_id" type="hidden" value={match.id} />
         <div className="field">
           <label htmlFor={`${match.id}-admin-home`}>Home</label>
@@ -56,12 +57,10 @@ export function AdminResultForm({ match }: { match: MatchRow }) {
             <option value="POSTPONED">Postponed</option>
           </select>
         </div>
-        <button className="button primary" type="submit">
-          <Save size={17} />
+        <SubmitButton pendingLabel="Saving…" icon={<Save size={17} />}>
           Save
-        </button>
+        </SubmitButton>
       </form>
     </div>
   );
 }
-

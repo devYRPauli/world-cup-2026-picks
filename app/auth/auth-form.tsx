@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { LogIn, Mail, UserPlus } from "lucide-react";
+import { LogIn, Mail } from "lucide-react";
 import { signInAction, signUpAction } from "@/app/auth/actions";
+import { SubmitButton } from "@/components/submit-button";
 
 export function AuthForm({
   message,
@@ -17,23 +18,24 @@ export function AuthForm({
   return (
     <div className="auth-panel">
       <div className="brand">
-        <span className="brand-mark" aria-hidden="true">
-          <UserPlus size={23} />
-        </span>
+        <span className="mark" aria-hidden="true">26</span>
         <span>
-          <h1>World Cup 2026 Picks</h1>
-          <p>Sign in to make your picks.</p>
+          <span className="t1">World Cup 2026 Picks</span>
         </span>
       </div>
+      <h1>{isSignup ? "Join the pool" : "Welcome back"}</h1>
+      <p className="lede">{isSignup ? "Create an account to start making picks." : "Sign in to make your picks."}</p>
 
-      {message ? <div className="notice">{message}</div> : null}
-      {error ? <div className="notice error">{error}</div> : null}
+      {message ? <div className="notice" style={{ marginTop: 18 }}>{message}</div> : null}
+      {error ? <div className="notice error" style={{ marginTop: 18 }}>{error}</div> : null}
 
       <div className="auth-tabs" role="tablist" aria-label="Authentication mode">
         <button
           className={`auth-tab ${!isSignup ? "active" : ""}`}
           onClick={() => setMode("signin")}
           type="button"
+          role="tab"
+          aria-selected={!isSignup}
         >
           Sign in
         </button>
@@ -41,12 +43,14 @@ export function AuthForm({
           className={`auth-tab ${isSignup ? "active" : ""}`}
           onClick={() => setMode("signup")}
           type="button"
+          role="tab"
+          aria-selected={isSignup}
         >
           Join
         </button>
       </div>
 
-      <form action={isSignup ? signUpAction : signInAction} className="auth-form">
+      <form action={isSignup ? signUpAction : signInAction} className="stack">
         {isSignup ? (
           <>
             <div className="field">
@@ -67,10 +71,13 @@ export function AuthForm({
           <label htmlFor="password">Password</label>
           <input id="password" minLength={8} name="password" required type="password" />
         </div>
-        <button className="button primary" type="submit">
-          {isSignup ? <Mail size={17} /> : <LogIn size={17} />}
+        <SubmitButton
+          className="block"
+          pendingLabel={isSignup ? "Creating account…" : "Signing in…"}
+          icon={isSignup ? <Mail size={17} /> : <LogIn size={17} />}
+        >
           {isSignup ? "Send confirmation" : "Sign in"}
-        </button>
+        </SubmitButton>
       </form>
     </div>
   );

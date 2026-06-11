@@ -1,10 +1,10 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { RefreshCcw } from "lucide-react";
 import { syncMatchesAction } from "@/app/admin/actions";
 import { AppHeader } from "@/components/app-header";
 import { AdminResultForm } from "@/components/admin-result-form";
 import { SetupScreen } from "@/components/setup-screen";
+import { SubmitButton } from "@/components/submit-button";
 import { getMissingServerEnv, hasServerSupabaseEnv } from "@/lib/env";
 import { requireCurrentProfile } from "@/lib/auth";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -39,24 +39,18 @@ export default async function AdminPage({
   }
 
   return (
-    <main className="page-shell">
-      <AppHeader profile={session.profile} />
-      <div className="admin-header">
+    <main className="shell">
+      <AppHeader profile={session.profile} active="admin" />
+      <div className="page-head">
         <div>
           <p className="eyebrow">Admin</p>
           <h1>Match control</h1>
         </div>
-        <div className="topbar-actions">
-          <form action={syncMatchesAction}>
-            <button className="button primary" type="submit">
-              <RefreshCcw size={17} />
-              Sync fixtures
-            </button>
-          </form>
-          <Link className="button" href="/">
-            Back
-          </Link>
-        </div>
+        <form action={syncMatchesAction}>
+          <SubmitButton pendingLabel="Syncing…" icon={<RefreshCcw size={17} />}>
+            Sync fixtures
+          </SubmitButton>
+        </form>
       </div>
 
       {params.message ? <div className="notice">{params.message}</div> : null}

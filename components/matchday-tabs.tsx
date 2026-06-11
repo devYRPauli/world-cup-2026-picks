@@ -2,28 +2,26 @@ import Link from "next/link";
 
 export function MatchdayTabs({
   matchdays,
-  selectedTab
+  selectedMatchday
 }: {
   matchdays: number[];
-  selectedTab: string;
+  selectedMatchday: number | null;
 }) {
+  if (!matchdays.length) {
+    return null;
+  }
+
   return (
-    <nav className="tab-strip" aria-label="Dashboard sections">
-      <Link className={`tab-link ${selectedTab === "groups" ? "active" : ""}`} href="/?tab=groups">
-        Group picks
-      </Link>
-      {matchdays.map((matchday) => {
-        const key = `md-${matchday}`;
-        return (
-          <Link
-            className={`tab-link ${selectedTab === key ? "active" : ""}`}
-            href={`/?tab=${key}`}
-            key={key}
-          >
-            Matchday {matchday}
-          </Link>
-        );
-      })}
+    <nav className="tabs" aria-label="Matchdays">
+      {matchdays.map((matchday) => (
+        <Link
+          key={matchday}
+          href={`/?tab=matches&md=${matchday}`}
+          className={`tab ${selectedMatchday === matchday ? "active" : ""}`}
+        >
+          Matchday {matchday}
+        </Link>
+      ))}
     </nav>
   );
 }

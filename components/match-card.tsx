@@ -1,9 +1,13 @@
-import { CalendarDays, Lock, Save } from "lucide-react";
+"use client";
+
+import { useState } from "react";
+import { CalendarDays, Check, Lock, Pencil } from "lucide-react";
 import { savePredictionAction } from "@/app/predictions/actions";
-import { formatDateTime, toTitleCase } from "@/lib/format";
+import { SubmitButton } from "@/components/submit-button";
+import { StatusPill } from "@/components/status-pill";
+import { formatDateTime, minutesUntil, toTitleCase } from "@/lib/format";
 import { pickLabel } from "@/lib/scoring";
 import type { MatchPredictionStats, MatchRow, Pick, PredictionRow } from "@/lib/types";
-import { StatusPill } from "@/components/status-pill";
 
 export function MatchCard({
   match,
@@ -15,59 +19,50 @@ export function MatchCard({
   stats?: MatchPredictionStats;
 }) {
   const locked = new Date(match.starts_at).getTime() <= Date.now() || match.status !== "SCHEDULED";
-  const score =
-    match.home_score !== null && match.away_score !== null
-      ? `${match.home_score} - ${match.away_score}`
-      : "vs";
+  const [editing, setEditing] = useState(false);
+
+  const hasScore = match.home_score !== null && match.away_score !== null;
+  const score = hasScore ? `${match.home_score}–${match.away_score}` : "vs";
+  const showForm = !locked && (editing || !prediction);
 
   return (
-    <article className="match-card">
-      <div className="match-topline">
-        <div className="match-meta">
-          <span>{match.group_name ?? toTitleCase(match.stage)}</span>
-          <span>Matchday {match.matchday ?? "-"}</span>
+    <article className="card">
+      <div className="card-top">
+        <div className="meta">
+          <span>{match.group_name ? toTitleCase(match.group_name) : toTitleCase(match.stage)}</span>
+          {match.matchday ? (
+            <>
+              <span className="dot">•</span>
+              <span>Matchday {match.matchday}</span>
+            </>
+          ) : null}
+          <span className="dot">•</span>
           <span>
-            <CalendarDays size={14} /> {formatDateTime(match.starts_at)}
+            <CalendarDays size={13} /> {formatDateTime(match.starts_at)}
           </span>
         </div>
         <StatusPill status={match.status} locked={locked} />
       </div>
-      <div className="match-body">
+
+      <div className="card-body">
         <div className="teams">
           <TeamBadge name={match.home_team} badge={match.home_badge} />
-          <div className="score-box">
-            {score}
-            <span>{match.status === "FINISHED" ? "result" : "pick"}</span>
+          <div className="vs">
+            <div className="score tnum">{score}</div>
+            <div className="lbl">{match.status === "FINISHED" ? "result" : "pick"}</div>
           </div>
           <TeamBadge name={match.away_team} badge={match.away_badge} away />
         </div>
 
-        {match.venue ? <p className="saved-pick">Venue: {match.venue}</p> : null}
-
-        {!locked ? (
-          <form action={savePredictionAction} className="pick-form">
+        {showForm ? (
+          <form action={savePredictionAction} className="pickform">
             <input name="match_id" type="hidden" value={match.id} />
-            <div className="choice-grid" aria-label="Pick outcome">
-              <Choice
-                label={match.home_team}
-                name="pick"
-                value="home"
-                defaultChecked={prediction?.pick === "home"}
-              />
-              <Choice
-                label="Draw"
-                name="pick"
-                value="draw"
-                defaultChecked={prediction?.pick === "draw" || !prediction}
-              />
-              <Choice
-                label={match.away_team}
-                name="pick"
-                value="away"
-                defaultChecked={prediction?.pick === "away"}
-              />
+            <div className="choices" aria-label="Pick outcome">
+              <Choice label={match.home_team} value="home" defaultChecked={prediction?.pick === "home"} />
+              <Choice label="Draw" value="draw" defaultChecked={prediction?.pick === "draw" || !prediction} />
+              <Choice label={match.away_team} value="away" defaultChecked={prediction?.pick === "away"} />
             </div>
-            <div className="score-pick-row">
+            <div className="scorerow">
               <div className="field">
                 <label htmlFor={`${match.id}-home-score`}>{match.home_team} score</label>
                 <input
@@ -90,37 +85,98 @@ export function MatchCard({
                   defaultValue={prediction?.predicted_away_score ?? ""}
                 />
               </div>
-              <button className="button primary" type="submit">
-                <Save size={17} />
-                Save
-              </button>
+              <SubmitButton pendingLabel="Saving…" icon={<Check size={17} />}>
+                {prediction ? "Update" : "Save pick"}
+              </SubmitButton>
             </div>
           </form>
-        ) : (
-          <div className="saved-pick">
-            <Lock size={17} />
+        ) : locked ? (
+          <div className="lockedrow">
+            <Lock size={15} />
             {prediction ? (
               <>
-                Your pick: <strong>{pickLabel(prediction.pick, match)}</strong>
-                {prediction.predicted_home_score !== null && prediction.predicted_away_score !== null
-                  ? ` (${prediction.predicted_home_score}-${prediction.predicted_away_score})`
-                  : ""}
-                {match.status === "FINISHED" ? ` | ${prediction.points} pts` : ""}
+                You picked <b>{pickScoreLabel(prediction, match)}</b>
               </>
             ) : (
-              "No saved pick"
+              <span>No pick saved</span>
             )}
+            {match.status === "FINISHED" && prediction ? (
+              <span className="pts">+{prediction.points} pts</span>
+            ) : null}
+          </div>
+        ) : (
+          <div className="saved">
+            <div className="saved-info">
+              <span className="check" aria-hidden="true">
+                <Check size={18} />
+              </span>
+              <div>
+                <div className="l1">Your pick · {lockCountdown(match.starts_at)}</div>
+                <div className="l2">{prediction ? pickScoreNode(prediction, match) : null}</div>
+              </div>
+            </div>
+            <button className="btn ghost" type="button" onClick={() => setEditing(true)}>
+              <Pencil size={15} />
+              Edit
+            </button>
           </div>
         )}
 
         {stats && stats.total > 0 ? (
-          <div className="saved-pick">
-            Pool split: {stats.home} {shortName(match.home_team)} | {stats.draw} draw | {stats.away}{" "}
-            {shortName(match.away_team)}
-          </div>
+          <PoolSplit stats={stats} match={match} />
         ) : null}
       </div>
     </article>
+  );
+}
+
+function pickScoreLabel(prediction: PredictionRow, match: MatchRow) {
+  const base = pickLabel(prediction.pick, match);
+  if (prediction.predicted_home_score !== null && prediction.predicted_away_score !== null) {
+    return `${base} · ${prediction.predicted_home_score}–${prediction.predicted_away_score}`;
+  }
+  return base;
+}
+
+function pickScoreNode(prediction: PredictionRow, match: MatchRow) {
+  const base = pickLabel(prediction.pick, match);
+  const hasScore =
+    prediction.predicted_home_score !== null && prediction.predicted_away_score !== null;
+  return (
+    <>
+      <b>{base}</b>
+      {hasScore ? ` · ${prediction.predicted_home_score}–${prediction.predicted_away_score}` : ""}
+    </>
+  );
+}
+
+function lockCountdown(startsAt: string) {
+  const mins = minutesUntil(startsAt);
+  if (mins <= 0) return "locking now";
+  if (mins < 60) return `locks in ${mins}m`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `locks in ${hours}h`;
+  return `locks in ${Math.round(hours / 24)}d`;
+}
+
+function PoolSplit({ stats, match }: { stats: MatchPredictionStats; match: MatchRow }) {
+  const pct = (n: number) => (stats.total ? Math.round((n / stats.total) * 100) : 0);
+  const leader = Math.max(stats.home, stats.draw, stats.away);
+  const leaderLabel =
+    leader === stats.home ? shortName(match.home_team) : leader === stats.away ? shortName(match.away_team) : "Draw";
+
+  return (
+    <div className="split">
+      <span>Pool</span>
+      <span className="bar" aria-hidden="true">
+        <i className="h" style={{ width: `${pct(stats.home)}%` }} />
+        <i className="d" style={{ width: `${pct(stats.draw)}%` }} />
+        <i className="a" style={{ width: `${pct(stats.away)}%` }} />
+      </span>
+      <span className="tnum">
+        {pct(leader)}% {leaderLabel}
+      </span>
+    </div>
   );
 }
 
@@ -135,27 +191,21 @@ function TeamBadge({ name, badge, away }: { name: string; badge: string | null; 
 }
 
 function Badge({ name, badge }: { name: string; badge: string | null }) {
-  return (
-    <span className="badge">
-      {badge ? <img alt="" src={badge} /> : name.slice(0, 3).toUpperCase()}
-    </span>
-  );
+  return <span className="flag">{badge ? <img alt="" src={badge} /> : name.slice(0, 3).toUpperCase()}</span>;
 }
 
 function Choice({
   label,
-  name,
   value,
   defaultChecked
 }: {
   label: string;
-  name: string;
   value: Pick;
   defaultChecked: boolean;
 }) {
   return (
     <label className="choice">
-      <input defaultChecked={defaultChecked} name={name} type="radio" value={value} />
+      <input defaultChecked={defaultChecked} name="pick" type="radio" value={value} />
       {label}
     </label>
   );
