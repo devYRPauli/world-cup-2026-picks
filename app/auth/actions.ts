@@ -57,7 +57,8 @@ export async function signUpAction(formData: FormData) {
     redirect(`/auth?error=${encodeURIComponent(error.message)}`);
   }
 
-  redirect("/auth?message=Check%20your%20email%20to%20confirm%20your%20account.");
+  // Email confirmation is disabled, so sign-up returns an active session — go straight in.
+  redirect("/");
 }
 
 export async function signOutAction() {

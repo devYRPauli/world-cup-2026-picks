@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { LogIn, Mail } from "lucide-react";
+import { LogIn, UserPlus } from "lucide-react";
 import { signInAction, signUpAction } from "@/app/auth/actions";
 import { SubmitButton } from "@/components/submit-button";
 
@@ -24,7 +24,7 @@ export function AuthForm({
         </span>
       </div>
       <h1>{isSignup ? "Join the pool" : "Welcome back"}</h1>
-      <p className="lede">{isSignup ? "Create an account to start making picks." : "Sign in to make your picks."}</p>
+      <p className="lede">{isSignup ? "Create an account and start picking right away." : "Sign in to make your picks."}</p>
 
       {message ? <div className="notice" style={{ marginTop: 18 }}>{message}</div> : null}
       {error ? <div className="notice error" style={{ marginTop: 18 }}>{error}</div> : null}
@@ -74,9 +74,9 @@ export function AuthForm({
         <SubmitButton
           className="block"
           pendingLabel={isSignup ? "Creating account…" : "Signing in…"}
-          icon={isSignup ? <Mail size={17} /> : <LogIn size={17} />}
+          icon={isSignup ? <UserPlus size={17} /> : <LogIn size={17} />}
         >
-          {isSignup ? "Send confirmation" : "Sign in"}
+          {isSignup ? "Create account & sign in" : "Sign in"}
         </SubmitButton>
       </form>
     </div>
