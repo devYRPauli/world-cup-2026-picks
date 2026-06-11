@@ -1,20 +1,21 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { buildGroups } from "@/lib/groups";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { MatchRow } from "@/lib/types";
 
-export async function saveGroupPredictionAction(formData: FormData) {
+export type SaveResult = { ok: true } | { ok: false; error: string };
+
+export async function saveGroupPredictionAction(formData: FormData): Promise<SaveResult> {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/auth");
+    return { ok: false, error: "Please sign in again." };
   }
 
   const groupName = getString(formData, "group_name");
@@ -23,12 +24,12 @@ export async function saveGroupPredictionAction(formData: FormData) {
   const pickedTeam3 = getString(formData, "picked_team_3");
 
   if (!groupName || !pickedTeam1 || !pickedTeam2) {
-    redirect("/?tab=groups&error=Pick%20at%20least%20two%20teams%20before%20saving.");
+    return { ok: false, error: "Pick at least two teams before saving." };
   }
 
   const chosen = [pickedTeam1, pickedTeam2, ...(pickedTeam3 ? [pickedTeam3] : [])];
   if (new Set(chosen).size !== chosen.length) {
-    redirect("/?tab=groups&error=Choose%20different%20teams.");
+    return { ok: false, error: "Choose different teams." };
   }
 
   const admin = getSupabaseAdminClient();
@@ -39,21 +40,21 @@ export async function saveGroupPredictionAction(formData: FormData) {
     .returns<MatchRow[]>();
 
   if (matchesError) {
-    redirect(`/?tab=groups&error=${encodeURIComponent(matchesError.message)}`);
+    return { ok: false, error: matchesError.message };
   }
 
   const group = buildGroups(matches ?? []).find((item) => item.name === groupName);
   if (!group) {
-    redirect("/?tab=groups&error=Group%20not%20found.");
+    return { ok: false, error: "Group not found." };
   }
 
   if (group.is_locked) {
-    redirect("/?tab=groups&error=That%20group%20is%20already%20locked.");
+    return { ok: false, error: "That group is already locked." };
   }
 
   const teamNames = new Set(group.teams.map((team) => team.name));
   if (chosen.some((team) => !teamNames.has(team))) {
-    redirect("/?tab=groups&error=Choose%20teams%20from%20that%20group.");
+    return { ok: false, error: "Choose teams from that group." };
   }
 
   const { error } = await supabase.from("group_predictions").upsert(
@@ -70,11 +71,11 @@ export async function saveGroupPredictionAction(formData: FormData) {
   );
 
   if (error) {
-    redirect(`/?tab=groups&error=${encodeURIComponent(error.message)}`);
+    return { ok: false, error: error.message };
   }
 
   revalidatePath("/");
-  redirect("/?tab=groups&message=Group%20pick%20saved.");
+  return { ok: true };
 }
 
 function getString(formData: FormData, key: string) {

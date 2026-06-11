@@ -1151,6 +1151,31 @@ button {
   font-weight: 600;
 }
 
+.save-error {
+  margin-top: 14px;
+  padding: 9px 12px;
+  border-radius: 11px;
+  border: 1px solid color-mix(in srgb, var(--red) 32%, transparent);
+  background: var(--red-soft);
+  color: var(--red-ink);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.saving-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.saving-hint .spinner {
+  border-color: color-mix(in srgb, var(--muted) 30%, transparent);
+  border-top-color: var(--muted);
+}
+
 /* ---------------- Mobile drawer ---------------- */
 .scrim {
   position: fixed;

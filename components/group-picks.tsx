@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Check, Lock, Pencil, Trophy, X } from "lucide-react";
 import { saveGroupPredictionAction } from "@/app/group-picks/actions";
-import { SubmitButton } from "@/components/submit-button";
 import { formatShortDate } from "@/lib/format";
 import type { GroupPredictionRow, GroupView } from "@/lib/types";
 
@@ -46,6 +45,13 @@ export function GroupPicks({
   );
 }
 
+function predictionPicks(prediction?: GroupPredictionRow): string[] {
+  if (!prediction) return [];
+  return [prediction.picked_team_1, prediction.picked_team_2, prediction.picked_team_3].filter(
+    (team): team is string => Boolean(team)
+  );
+}
+
 function GroupCard({
   group,
   prediction,
@@ -55,17 +61,39 @@ function GroupCard({
   prediction?: GroupPredictionRow;
   advanced: Set<string>;
 }) {
+  const [picks, setPicks] = useState<string[]>(predictionPicks(prediction));
   const [editing, setEditing] = useState(false);
-  const showForm = !group.is_locked && (editing || !prediction);
-  // Once the knockout bracket is known we colour teams by who actually advanced;
-  // before that, highlight the provisional top two from the live table.
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  const showForm = !group.is_locked && (editing || picks.length === 0);
   const bracketKnown = advanced.size > 0;
 
-  const picks = prediction
-    ? [prediction.picked_team_1, prediction.picked_team_2, prediction.picked_team_3].filter(
-        (team): team is string => Boolean(team)
-      )
-    : [];
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const next = [
+      formData.get("picked_team_1"),
+      formData.get("picked_team_2"),
+      formData.get("picked_team_3")
+    ]
+      .map((value) => (typeof value === "string" ? value.trim() : ""))
+      .filter(Boolean);
+    const previous = picks;
+
+    setPicks(next);
+    setEditing(false);
+    setError(null);
+
+    startTransition(async () => {
+      const result = await saveGroupPredictionAction(formData);
+      if (!result.ok) {
+        setPicks(previous);
+        setEditing(true);
+        setError(result.error);
+      }
+    });
+  }
 
   return (
     <article className="group-card">
@@ -79,36 +107,25 @@ function GroupCard({
         </span>
       </div>
 
+      {error ? <div className="save-error">{error}</div> : null}
+
       {showForm ? (
-        <form action={saveGroupPredictionAction} className="group-pick-form">
+        <form onSubmit={handleSubmit} className="group-pick-form">
           <input name="group_name" type="hidden" value={group.name} />
           <p className="pick-hint">Pick the 2 or 3 teams you think advance. +5 pts each.</p>
-          <TeamSelect
-            groupName={group.name}
-            label="Qualifier 1"
-            name="picked_team_1"
-            teams={group.teams}
-            value={prediction?.picked_team_1}
-            required
-          />
-          <TeamSelect
-            groupName={group.name}
-            label="Qualifier 2"
-            name="picked_team_2"
-            teams={group.teams}
-            value={prediction?.picked_team_2}
-            required
-          />
+          <TeamSelect groupName={group.name} label="Qualifier 1" name="picked_team_1" teams={group.teams} value={picks[0]} required />
+          <TeamSelect groupName={group.name} label="Qualifier 2" name="picked_team_2" teams={group.teams} value={picks[1]} required />
           <TeamSelect
             groupName={group.name}
             label="Third-place longshot (optional)"
             name="picked_team_3"
             teams={group.teams}
-            value={prediction?.picked_team_3 ?? ""}
+            value={picks[2] ?? ""}
           />
-          <SubmitButton pendingLabel="Saving…" icon={<Check size={17} />}>
-            {prediction ? "Update" : "Save picks"}
-          </SubmitButton>
+          <button className="btn" type="submit" disabled={isPending} aria-busy={isPending}>
+            {isPending ? <span className="spinner" aria-hidden="true" /> : <Check size={17} />}
+            {picks.length ? "Update" : "Save picks"}
+          </button>
         </form>
       ) : group.is_locked ? (
         <div className="picks-summary locked">
@@ -143,10 +160,16 @@ function GroupCard({
               </ul>
             </div>
           </div>
-          <button className="btn ghost" type="button" onClick={() => setEditing(true)}>
-            <Pencil size={15} />
-            Edit
-          </button>
+          {isPending ? (
+            <span className="saving-hint">
+              <span className="spinner" aria-hidden="true" /> Saving…
+            </span>
+          ) : (
+            <button className="btn ghost" type="button" onClick={() => setEditing(true)}>
+              <Pencil size={15} />
+              Edit
+            </button>
+          )}
         </div>
       )}
 

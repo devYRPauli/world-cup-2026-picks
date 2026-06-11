@@ -1,13 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { CalendarDays, Check, Lock, Pencil } from "lucide-react";
 import { savePredictionAction } from "@/app/predictions/actions";
-import { SubmitButton } from "@/components/submit-button";
 import { StatusPill } from "@/components/status-pill";
 import { formatDateTime, minutesUntil, toTitleCase } from "@/lib/format";
 import { pickLabel } from "@/lib/scoring";
 import type { MatchPredictionStats, MatchRow, Pick, PredictionRow } from "@/lib/types";
+
+type SavedPick = {
+  pick: Pick;
+  predicted_home_score: number | null;
+  predicted_away_score: number | null;
+  points: number;
+};
+
+function toSaved(prediction?: PredictionRow): SavedPick | null {
+  return prediction
+    ? {
+        pick: prediction.pick,
+        predicted_home_score: prediction.predicted_home_score,
+        predicted_away_score: prediction.predicted_away_score,
+        points: prediction.points
+      }
+    : null;
+}
 
 export function MatchCard({
   match,
@@ -19,11 +36,43 @@ export function MatchCard({
   stats?: MatchPredictionStats;
 }) {
   const locked = new Date(match.starts_at).getTime() <= Date.now() || match.status !== "SCHEDULED";
+
+  const [saved, setSaved] = useState<SavedPick | null>(toSaved(prediction));
   const [editing, setEditing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   const hasScore = match.home_score !== null && match.away_score !== null;
   const score = hasScore ? `${match.home_score}–${match.away_score}` : "vs";
-  const showForm = !locked && (editing || !prediction);
+  const showForm = !locked && (editing || !saved);
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const pick = (formData.get("pick") as Pick) ?? "draw";
+
+    const optimistic: SavedPick = {
+      pick,
+      predicted_home_score: parseIntOrNull(formData.get("predicted_home_score")),
+      predicted_away_score: parseIntOrNull(formData.get("predicted_away_score")),
+      points: 0
+    };
+    const previous = saved;
+
+    // Flip to the saved state instantly; reconcile when the server responds.
+    setSaved(optimistic);
+    setEditing(false);
+    setError(null);
+
+    startTransition(async () => {
+      const result = await savePredictionAction(formData);
+      if (!result.ok) {
+        setSaved(previous);
+        setEditing(true);
+        setError(result.error);
+      }
+    });
+  }
 
   return (
     <article className="card">
@@ -54,13 +103,15 @@ export function MatchCard({
           <TeamBadge name={match.away_team} badge={match.away_badge} away />
         </div>
 
+        {error ? <div className="save-error">{error}</div> : null}
+
         {showForm ? (
-          <form action={savePredictionAction} className="pickform">
+          <form onSubmit={handleSubmit} className="pickform">
             <input name="match_id" type="hidden" value={match.id} />
             <div className="choices" aria-label="Pick outcome">
-              <Choice label={match.home_team} value="home" defaultChecked={prediction?.pick === "home"} />
-              <Choice label="Draw" value="draw" defaultChecked={prediction?.pick === "draw" || !prediction} />
-              <Choice label={match.away_team} value="away" defaultChecked={prediction?.pick === "away"} />
+              <Choice label={match.home_team} value="home" defaultChecked={saved?.pick === "home"} />
+              <Choice label="Draw" value="draw" defaultChecked={saved?.pick === "draw" || !saved} />
+              <Choice label={match.away_team} value="away" defaultChecked={saved?.pick === "away"} />
             </div>
             <div className="scorerow">
               <div className="field">
@@ -71,7 +122,7 @@ export function MatchCard({
                   name="predicted_home_score"
                   placeholder="Optional"
                   type="number"
-                  defaultValue={prediction?.predicted_home_score ?? ""}
+                  defaultValue={saved?.predicted_home_score ?? ""}
                 />
               </div>
               <div className="field">
@@ -82,27 +133,26 @@ export function MatchCard({
                   name="predicted_away_score"
                   placeholder="Optional"
                   type="number"
-                  defaultValue={prediction?.predicted_away_score ?? ""}
+                  defaultValue={saved?.predicted_away_score ?? ""}
                 />
               </div>
-              <SubmitButton pendingLabel="Saving…" icon={<Check size={17} />}>
-                {prediction ? "Update" : "Save pick"}
-              </SubmitButton>
+              <button className="btn" type="submit" disabled={isPending} aria-busy={isPending}>
+                {isPending ? <span className="spinner" aria-hidden="true" /> : <Check size={17} />}
+                {saved ? "Update" : "Save pick"}
+              </button>
             </div>
           </form>
         ) : locked ? (
           <div className="lockedrow">
             <Lock size={15} />
-            {prediction ? (
+            {saved ? (
               <>
-                You picked <b>{pickScoreLabel(prediction, match)}</b>
+                You picked <b>{pickScoreLabel(saved, match)}</b>
               </>
             ) : (
               <span>No pick saved</span>
             )}
-            {match.status === "FINISHED" && prediction ? (
-              <span className="pts">+{prediction.points} pts</span>
-            ) : null}
+            {match.status === "FINISHED" && saved ? <span className="pts">+{saved.points} pts</span> : null}
           </div>
         ) : (
           <div className="saved">
@@ -112,40 +162,51 @@ export function MatchCard({
               </span>
               <div>
                 <div className="l1">Your pick · {lockCountdown(match.starts_at)}</div>
-                <div className="l2">{prediction ? pickScoreNode(prediction, match) : null}</div>
+                <div className="l2">{saved ? pickScoreNode(saved, match) : null}</div>
               </div>
             </div>
-            <button className="btn ghost" type="button" onClick={() => setEditing(true)}>
-              <Pencil size={15} />
-              Edit
-            </button>
+            {isPending ? (
+              <span className="saving-hint">
+                <span className="spinner" aria-hidden="true" /> Saving…
+              </span>
+            ) : (
+              <button className="btn ghost" type="button" onClick={() => setEditing(true)}>
+                <Pencil size={15} />
+                Edit
+              </button>
+            )}
           </div>
         )}
 
-        {stats && stats.total > 0 ? (
-          <PoolSplit stats={stats} match={match} />
-        ) : null}
+        {stats && stats.total > 0 ? <PoolSplit stats={stats} match={match} /> : null}
       </div>
     </article>
   );
 }
 
-function pickScoreLabel(prediction: PredictionRow, match: MatchRow) {
-  const base = pickLabel(prediction.pick, match);
-  if (prediction.predicted_home_score !== null && prediction.predicted_away_score !== null) {
-    return `${base} · ${prediction.predicted_home_score}–${prediction.predicted_away_score}`;
+function parseIntOrNull(value: FormDataEntryValue | null): number | null {
+  if (typeof value !== "string" || value.trim() === "") {
+    return null;
+  }
+  const parsed = Number.parseInt(value, 10);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+function pickScoreLabel(saved: SavedPick, match: MatchRow) {
+  const base = pickLabel(saved.pick, match);
+  if (saved.predicted_home_score !== null && saved.predicted_away_score !== null) {
+    return `${base} · ${saved.predicted_home_score}–${saved.predicted_away_score}`;
   }
   return base;
 }
 
-function pickScoreNode(prediction: PredictionRow, match: MatchRow) {
-  const base = pickLabel(prediction.pick, match);
-  const hasScore =
-    prediction.predicted_home_score !== null && prediction.predicted_away_score !== null;
+function pickScoreNode(saved: SavedPick, match: MatchRow) {
+  const base = pickLabel(saved.pick, match);
+  const hasScore = saved.predicted_home_score !== null && saved.predicted_away_score !== null;
   return (
     <>
       <b>{base}</b>
-      {hasScore ? ` · ${prediction.predicted_home_score}–${prediction.predicted_away_score}` : ""}
+      {hasScore ? ` · ${saved.predicted_home_score}–${saved.predicted_away_score}` : ""}
     </>
   );
 }
