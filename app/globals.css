@@ -976,12 +976,75 @@ button {
 
 .group-pick-form {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  grid-template-columns: 1fr;
+  gap: 10px;
 }
 
-.group-pick-form .btn {
-  grid-column: 1 / -1;
+.pick-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.picks-summary {
+  margin-top: 4px;
+}
+
+.picks-summary-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 0.82rem;
+}
+
+.picks-summary-head .pts {
+  margin-left: auto;
+  font-family: var(--font-display), sans-serif;
+  font-weight: 800;
+  color: var(--accent-deep);
+}
+
+.muted-line {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.pick-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pick-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: var(--chip);
+  font-weight: 700;
+  font-size: 0.82rem;
+}
+
+.pick-chip.hit {
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+}
+
+.pick-chip.miss {
+  border-color: color-mix(in srgb, var(--red) 32%, transparent);
+  background: var(--red-soft);
+  color: var(--red-ink);
+  text-decoration: line-through;
+  opacity: 0.85;
 }
 
 .standings {

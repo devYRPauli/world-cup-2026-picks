@@ -90,6 +90,7 @@ export default async function HomePage({
                   available={data.groupPicksAvailable}
                   groups={data.groups}
                   predictionsByGroup={data.userGroupPredictionsByGroup}
+                  advancedTeams={data.advancedTeams}
                 />
               </>
             ) : (

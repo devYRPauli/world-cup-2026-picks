@@ -20,13 +20,15 @@ export async function saveGroupPredictionAction(formData: FormData) {
   const groupName = getString(formData, "group_name");
   const pickedTeam1 = getString(formData, "picked_team_1");
   const pickedTeam2 = getString(formData, "picked_team_2");
+  const pickedTeam3 = getString(formData, "picked_team_3");
 
   if (!groupName || !pickedTeam1 || !pickedTeam2) {
-    redirect("/?tab=groups&error=Choose%20two%20teams%20before%20saving.");
+    redirect("/?tab=groups&error=Pick%20at%20least%20two%20teams%20before%20saving.");
   }
 
-  if (pickedTeam1 === pickedTeam2) {
-    redirect("/?tab=groups&error=Choose%20two%20different%20teams.");
+  const chosen = [pickedTeam1, pickedTeam2, ...(pickedTeam3 ? [pickedTeam3] : [])];
+  if (new Set(chosen).size !== chosen.length) {
+    redirect("/?tab=groups&error=Choose%20different%20teams.");
   }
 
   const admin = getSupabaseAdminClient();
@@ -50,7 +52,7 @@ export async function saveGroupPredictionAction(formData: FormData) {
   }
 
   const teamNames = new Set(group.teams.map((team) => team.name));
-  if (!teamNames.has(pickedTeam1) || !teamNames.has(pickedTeam2)) {
+  if (chosen.some((team) => !teamNames.has(team))) {
     redirect("/?tab=groups&error=Choose%20teams%20from%20that%20group.");
   }
 
@@ -60,6 +62,7 @@ export async function saveGroupPredictionAction(formData: FormData) {
       user_id: user.id,
       picked_team_1: pickedTeam1,
       picked_team_2: pickedTeam2,
+      picked_team_3: pickedTeam3 || null,
       points: 0,
       is_scored: false
     },

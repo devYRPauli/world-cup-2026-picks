@@ -1,5 +1,5 @@
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
-import { buildGroups } from "@/lib/groups";
+import { buildGroups, getAdvancedTeams } from "@/lib/groups";
 import type {
   GroupPredictionRow,
   LeaderboardRow,
@@ -67,6 +67,7 @@ export async function getDashboardData(currentUserId: string) {
   }
 
   const groups = buildGroups(matches);
+  const advancedTeams = getAdvancedTeams(matches);
   const leaderboard = buildLeaderboard(profiles, predictions, groupPredictions);
   const currentLeaderboardRow = leaderboard.find((row) => row.user_id === currentUserId) ?? null;
   const nextMatch = matches.find(
@@ -79,6 +80,7 @@ export async function getDashboardData(currentUserId: string) {
     groupPredictions,
     profiles,
     groups,
+    advancedTeams,
     userPredictionsByMatch,
     userGroupPredictionsByGroup,
     statsByMatch,

@@ -10,7 +10,7 @@ World Cup 2026 Picks is built for friendly bragging-rights pools only. It does n
 - FIFA World Cup match import from football-data.org
 - Manual result entry fallback for admins
 - Pick winner/draw plus optional exact-score bonus
-- Pick top two teams from each group for bonus points
+- Pick the 2-3 teams from each group you think reach the Round of 32 for bonus points
 - Matchday tabs for group-stage matches
 - Automatic scoring and leaderboard
 - Supabase Auth/Postgres backend
@@ -67,6 +67,7 @@ If you already deployed an earlier version, run the newest migration in Supabase
 
 ```sql
 supabase/migrations/20260611_group_predictions.sql
+supabase/migrations/20260612_group_third_pick.sql
 ```
 
 ## Invite-only signup
@@ -77,7 +78,7 @@ Set `POOL_INVITE_CODE` in Vercel and local env. New members will need that code 
 
 - Correct outcome: 3 points
 - Exact score bonus: 2 points
-- Correct group qualifier: 5 points per team
+- Group qualifier: 5 points for each picked team that reaches the Round of 32 (pick 2 or 3 per group)
 - Wrong pick: 0 points
 
 Picks are for fun only. There is no money or wagering logic in the app.

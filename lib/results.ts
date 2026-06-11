@@ -1,7 +1,11 @@
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
-import { buildGroups, getGroupTopTwo, scoreGroupPrediction } from "@/lib/groups";
+import { getAdvancedTeams, scoreAdvancers } from "@/lib/groups";
 import { scorePrediction } from "@/lib/scoring";
 import type { GroupPredictionRow, MatchRow, PredictionRow } from "@/lib/types";
+
+// 32 teams reach the Round of 32; once that many real teams appear in the
+// knockout fixtures the bracket is settled and group bonuses are final.
+const ROUND_OF_32_SIZE = 32;
 
 export async function recalculateMatchPredictions(matchId: string) {
   const supabase = getSupabaseAdminClient();
@@ -53,7 +57,7 @@ export async function recalculateManyMatches(matchIds: string[]) {
   return touched;
 }
 
-export async function recalculateGroupPredictions(groupNames?: string[]) {
+export async function recalculateGroupPredictions() {
   const supabase = getSupabaseAdminClient();
   const { data: matches, error: matchesError } = await supabase
     .from("matches")
@@ -65,21 +69,14 @@ export async function recalculateGroupPredictions(groupNames?: string[]) {
     throw new Error(matchesError.message);
   }
 
-  const groups = buildGroups(matches ?? []).filter(
-    (group) => !groupNames || groupNames.includes(group.name)
-  );
-
-  if (!groups.length) {
-    return 0;
-  }
+  // Advancement is global (the 8 best third-placed teams span all groups), so we
+  // score every prediction against one set of teams that reached the knockouts.
+  const advanced = new Set(getAdvancedTeams(matches ?? []));
+  const bracketResolved = advanced.size >= ROUND_OF_32_SIZE;
 
   const { data: predictions, error: predictionsError } = await supabase
     .from("group_predictions")
     .select("*")
-    .in(
-      "group_name",
-      groups.map((group) => group.name)
-    )
     .returns<GroupPredictionRow[]>();
 
   if (predictionsError) {
@@ -92,31 +89,26 @@ export async function recalculateGroupPredictions(groupNames?: string[]) {
 
   let touched = 0;
 
-  for (const group of groups) {
-    const topTwo = getGroupTopTwo(group);
-    const groupPredictions = (predictions ?? []).filter(
-      (prediction) => prediction.group_name === group.name
-    );
+  for (const prediction of predictions ?? []) {
+    const picks = [
+      prediction.picked_team_1,
+      prediction.picked_team_2,
+      prediction.picked_team_3
+    ].filter((team): team is string => Boolean(team));
 
-    for (const prediction of groupPredictions) {
-      const points = group.is_complete
-        ? scoreGroupPrediction([prediction.picked_team_1, prediction.picked_team_2], topTwo)
-        : 0;
+    const { error } = await supabase
+      .from("group_predictions")
+      .update({
+        points: scoreAdvancers(picks, advanced),
+        is_scored: bracketResolved
+      })
+      .eq("id", prediction.id);
 
-      const { error } = await supabase
-        .from("group_predictions")
-        .update({
-          points,
-          is_scored: group.is_complete
-        })
-        .eq("id", prediction.id);
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      touched += 1;
+    if (error) {
+      throw new Error(error.message);
     }
+
+    touched += 1;
   }
 
   return touched;

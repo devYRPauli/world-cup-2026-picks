@@ -54,6 +54,7 @@ export type GroupPredictionRow = {
   user_id: string;
   picked_team_1: string;
   picked_team_2: string;
+  picked_team_3: string | null;
   points: number;
   is_scored: boolean;
   created_at: string;

@@ -6,7 +6,7 @@ import { requireCurrentProfile } from "@/lib/auth";
 import { syncWorldCupMatches } from "@/lib/football-data";
 import { recalculateGroupPredictions, recalculateMatchPredictions } from "@/lib/results";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
-import type { MatchRow, MatchStatus, Pick } from "@/lib/types";
+import type { MatchStatus, Pick } from "@/lib/types";
 
 const validStatuses = new Set<MatchStatus>(["SCHEDULED", "LIVE", "FINISHED", "POSTPONED"]);
 const validWinners = new Set<Pick>(["home", "draw", "away"]);
@@ -45,7 +45,7 @@ export async function updateMatchResultAction(formData: FormData) {
   }
 
   const supabase = getSupabaseAdminClient();
-  const { data: match, error } = await supabase
+  const { error } = await supabase
     .from("matches")
     .update({
       status,
@@ -53,16 +53,14 @@ export async function updateMatchResultAction(formData: FormData) {
       away_score: awayScore,
       result_winner: resultWinner
     })
-    .eq("id", matchId)
-    .select("*")
-    .single<MatchRow>();
+    .eq("id", matchId);
 
   if (error) {
     redirect(`/admin?error=${encodeURIComponent(error.message)}`);
   }
 
   await recalculateMatchPredictions(matchId);
-  await recalculateGroupPredictions(match.group_name ? [match.group_name] : undefined);
+  await recalculateGroupPredictions();
 
   revalidatePath("/");
   revalidatePath("/admin");

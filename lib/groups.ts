@@ -57,13 +57,43 @@ export function buildGroups(matches: MatchRow[]) {
     .sort((a, b) => a.display_name.localeCompare(b.display_name, undefined, { numeric: true }));
 }
 
-export function getGroupTopTwo(group: GroupView) {
-  return group.is_complete ? group.standings.slice(0, 2).map((row) => row.team) : [];
+// Teams that reached the knockout stage (Round of 32), derived from the
+// knockout fixtures once the sync resolves them to real team names. We whitelist
+// against real group-stage teams so bracket placeholders like "Winner Group A"
+// or "3rd C/E/F" are ignored until they turn into actual teams.
+export function getAdvancedTeams(matches: MatchRow[]): string[] {
+  const realTeams = new Set<string>();
+  for (const match of matches) {
+    if (!isGroupStageMatch(match)) {
+      continue;
+    }
+    if (isKnownTeam(match.home_team)) {
+      realTeams.add(match.home_team);
+    }
+    if (isKnownTeam(match.away_team)) {
+      realTeams.add(match.away_team);
+    }
+  }
+
+  const advanced = new Set<string>();
+  for (const match of matches) {
+    if (isGroupStageMatch(match)) {
+      continue;
+    }
+    if (realTeams.has(match.home_team)) {
+      advanced.add(match.home_team);
+    }
+    if (realTeams.has(match.away_team)) {
+      advanced.add(match.away_team);
+    }
+  }
+
+  return Array.from(advanced);
 }
 
-export function scoreGroupPrediction(picks: string[], topTwo: string[]) {
-  const topTwoSet = new Set(topTwo);
-  return picks.filter((pick) => topTwoSet.has(pick)).length * 5;
+// 5 points for each picked team that reached the Round of 32 (up to 3 picks).
+export function scoreAdvancers(picks: string[], advanced: Set<string>) {
+  return picks.filter((pick) => advanced.has(pick)).length * 5;
 }
 
 function buildGroup(name: string, matches: MatchRow[]): GroupView {

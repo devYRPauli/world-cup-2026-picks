@@ -53,11 +53,16 @@ create table if not exists public.group_predictions (
   user_id uuid not null references public.profiles(id) on delete cascade,
   picked_team_1 text not null,
   picked_team_2 text not null,
+  picked_team_3 text,
   points integer not null default 0,
   is_scored boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   check (picked_team_1 <> picked_team_2),
+  check (
+    picked_team_3 is null
+    or (picked_team_3 <> picked_team_1 and picked_team_3 <> picked_team_2)
+  ),
   unique (group_name, user_id)
 );
 
@@ -199,6 +204,10 @@ to authenticated
 with check (
   auth.uid() = user_id
   and picked_team_1 <> picked_team_2
+  and (
+    picked_team_3 is null
+    or (picked_team_3 <> picked_team_1 and picked_team_3 <> picked_team_2)
+  )
   and exists (
     select 1 from public.matches m
     where m.group_name = group_predictions.group_name
@@ -208,6 +217,14 @@ with check (
     select 1 from public.matches m
     where m.group_name = group_predictions.group_name
       and (m.home_team = picked_team_2 or m.away_team = picked_team_2)
+  )
+  and (
+    picked_team_3 is null
+    or exists (
+      select 1 from public.matches m
+      where m.group_name = group_predictions.group_name
+        and (m.home_team = picked_team_3 or m.away_team = picked_team_3)
+    )
   )
   and (
     select min(m.starts_at) from public.matches m
@@ -229,6 +246,10 @@ using (
 with check (
   auth.uid() = user_id
   and picked_team_1 <> picked_team_2
+  and (
+    picked_team_3 is null
+    or (picked_team_3 <> picked_team_1 and picked_team_3 <> picked_team_2)
+  )
   and exists (
     select 1 from public.matches m
     where m.group_name = group_predictions.group_name
@@ -238,6 +259,14 @@ with check (
     select 1 from public.matches m
     where m.group_name = group_predictions.group_name
       and (m.home_team = picked_team_2 or m.away_team = picked_team_2)
+  )
+  and (
+    picked_team_3 is null
+    or exists (
+      select 1 from public.matches m
+      where m.group_name = group_predictions.group_name
+        and (m.home_team = picked_team_3 or m.away_team = picked_team_3)
+    )
   )
   and (
     select min(m.starts_at) from public.matches m
