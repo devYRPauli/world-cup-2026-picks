@@ -32,7 +32,7 @@ export async function getCurrentProfile() {
   const displayName =
     typeof user.user_metadata.display_name === "string" && user.user_metadata.display_name
       ? user.user_metadata.display_name
-      : user.email?.split("@")[0] ?? "Lab Member";
+      : user.email?.split("@")[0] ?? "Member";
 
   let profile = existing;
 
@@ -102,4 +102,3 @@ function colorFromString(value: string) {
 
   return palette[Math.abs(hash) % palette.length];
 }
-

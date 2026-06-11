@@ -11,7 +11,7 @@ export function SetupScreen({ missing }: { missing: string[] }) {
                 <Trophy size={24} />
               </span>
               <span>
-                <h1>Lab Cup</h1>
+                <h1>World Cup 2026 Picks</h1>
                 <p>Finish the Supabase setup to start the pool.</p>
               </span>
             </div>
@@ -57,4 +57,3 @@ npm run dev`}</pre>
     </main>
   );
 }
-

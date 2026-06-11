@@ -3,7 +3,7 @@ create extension if not exists pgcrypto;
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text,
-  display_name text not null default 'Lab Member',
+  display_name text not null default 'Member',
   role text not null default 'member' check (role in ('member', 'admin')),
   avatar_color text not null default '#16a34a',
   created_at timestamptz not null default now(),
@@ -86,7 +86,7 @@ begin
   values (
     new.id,
     new.email,
-    coalesce(nullif(new.raw_user_meta_data->>'display_name', ''), split_part(new.email, '@', 1), 'Lab Member')
+    coalesce(nullif(new.raw_user_meta_data->>'display_name', ''), split_part(new.email, '@', 1), 'Member')
   )
   on conflict (id) do nothing;
   return new;
@@ -163,4 +163,3 @@ with check (
       and m.starts_at > now()
   )
 );
-

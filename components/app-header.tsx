@@ -11,7 +11,7 @@ export function AppHeader({ profile }: { profile: ProfileRow }) {
           <Trophy size={24} />
         </span>
         <span>
-          <h1>Lab Cup</h1>
+          <h1>World Cup 2026 Picks</h1>
           <p>FIFA World Cup 2026 predictions</p>
         </span>
       </Link>
@@ -35,4 +35,3 @@ export function AppHeader({ profile }: { profile: ProfileRow }) {
     </header>
   );
 }
-

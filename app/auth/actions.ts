@@ -27,14 +27,14 @@ export async function signUpAction(formData: FormData) {
   const password = getString(formData, "password");
   const displayName = getString(formData, "display_name");
   const inviteCode = getString(formData, "invite_code");
-  const requiredInviteCode = process.env.LAB_INVITE_CODE?.trim();
+  const requiredInviteCode = process.env.POOL_INVITE_CODE?.trim();
 
   if (!email || !password || !displayName) {
     redirect("/auth?error=Name,%20email,%20and%20password%20are%20required.");
   }
 
   if (requiredInviteCode && inviteCode !== requiredInviteCode) {
-    redirect("/auth?error=Invalid%20lab%20invite%20code.");
+    redirect("/auth?error=Invalid%20invite%20code.");
   }
 
   const headerStore = await headers();

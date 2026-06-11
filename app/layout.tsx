@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Lab Cup",
-  description: "Private FIFA World Cup 2026 prediction pool for the lab."
+  title: "World Cup 2026 Picks",
+  description: "Self-hostable FIFA World Cup 2026 prediction pool for small groups."
 };
 
 export default function RootLayout({

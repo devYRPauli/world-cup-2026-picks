@@ -21,7 +21,7 @@ export function AuthForm({
           <UserPlus size={23} />
         </span>
         <span>
-          <h1>Lab Cup</h1>
+          <h1>World Cup 2026 Picks</h1>
           <p>Sign in to make your picks.</p>
         </span>
       </div>
@@ -54,14 +54,14 @@ export function AuthForm({
               <input id="display_name" name="display_name" placeholder="Your leaderboard name" required />
             </div>
             <div className="field">
-              <label htmlFor="invite_code">Lab code</label>
+              <label htmlFor="invite_code">Invite code</label>
               <input id="invite_code" name="invite_code" placeholder="Shared invite code" />
             </div>
           </>
         ) : null}
         <div className="field">
           <label htmlFor="email">Email</label>
-          <input id="email" name="email" placeholder="you@lab.edu" required type="email" />
+          <input id="email" name="email" placeholder="you@example.com" required type="email" />
         </div>
         <div className="field">
           <label htmlFor="password">Password</label>

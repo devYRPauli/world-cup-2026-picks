@@ -115,7 +115,7 @@ export function MatchCard({
 
         {stats && stats.total > 0 ? (
           <div className="saved-pick">
-            Lab split: {stats.home} {shortName(match.home_team)} | {stats.draw} draw | {stats.away}{" "}
+            Pool split: {stats.home} {shortName(match.home_team)} | {stats.draw} draw | {stats.away}{" "}
             {shortName(match.away_team)}
           </div>
         ) : null}
