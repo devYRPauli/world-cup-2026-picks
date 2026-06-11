@@ -1,46 +1,99 @@
 # World Cup 2026 Picks
 
-A self-hostable FIFA World Cup 2026 prediction pool for small groups. Members make picks for each match, picks lock at kickoff, admins enter or sync results, and the leaderboard updates automatically.
+A self-hostable World Cup 2026 prediction pool for small groups. Members pick match outcomes, try optional exact scores, choose group-stage qualifiers, and compete on a live leaderboard.
 
-World Cup 2026 Picks is built for friendly bragging-rights pools only. It does not include odds, payments, payouts, or real-money wagering.
+This is built for friendly bragging rights only. It does not include odds, payments, payouts, or real-money wagering.
 
 ## Features
 
-- Email/password sign up with optional shared invite code
-- FIFA World Cup match import from football-data.org
-- Manual result entry fallback for admins
-- Pick winner/draw plus optional exact-score bonus
-- Pick the 2-3 teams from each group you think reach the Round of 32 for bonus points
+- Email and password signup with an optional shared invite code
+- Member profile setup with display names and generated colors
+- Admin promotion from configured email addresses
+- Fixture and result import from football-data.org
+- Manual result editing for admins when the API is late or unavailable
 - Matchday tabs for group-stage matches
-- Automatic scoring and leaderboard
-- Supabase Auth/Postgres backend
-- Vercel-friendly Next.js app
+- Client-side tab switching after the dashboard loads
+- Optimistic pick saving with no full-page refresh
+- Match picks that lock at kickoff
+- Group qualifier picks that lock at the first match in that group
+- Optional third group pick for the 2026 Round of 32 format
+- Automatic match and group scoring
+- Cached shared dashboard data with cache busting after writes
+- Light and dark themes with a responsive mobile nav
+- Vercel Cron result sync at 9:00 AM Eastern time
 
 ## Stack
 
-- Next.js app router
+- Next.js App Router
 - Supabase Auth and Postgres
 - Vercel hosting
-- football-data.org match sync, with manual result editing as fallback
+- football-data.org for match and result sync
+- TypeScript
 
-## Bring your own keys
+## How It Works
 
-This repo is safe to make public because it does not include secrets. To run it, each deployment needs its own Supabase project and optional football-data.org API token.
+1. Members join with email and password.
+2. If `POOL_INVITE_CODE` is set, signup requires that code.
+3. Admins sync fixtures from `/admin` after setting `FOOTBALL_DATA_TOKEN`.
+4. Members save match picks and group qualifier picks.
+5. Picks lock automatically when the relevant match or group starts.
+6. Results are imported by cron or updated manually by an admin.
+7. The app recalculates points and refreshes the leaderboard.
+
+The public repo does not contain secrets. Every deployment needs its own Supabase project, Supabase keys, and optional football-data.org token.
+
+## Scoring
+
+- Correct match outcome: 3 points
+- Exact score bonus: 2 points
+- Exact score bonus only counts when the outcome is also correct
+- Group qualifier hit: 5 points per picked team that reaches the Round of 32
+- Wrong match pick: 0 points
+- Wrong group qualifier pick: 0 points
+
+Leaderboard ties sort by total points, then correct match picks, then display name.
+
+## 2026 Group Bonus
+
+The 2026 tournament has 12 groups of four. The top two teams from each group and the eight best third-placed teams reach the Round of 32.
+
+For each group, members must pick two teams and may pick a third team. The third pick is useful because some third-placed teams advance.
+
+The app does not try to reimplement every official third-place tiebreaker. Instead, group bonus scoring is finalized after the synced knockout fixtures contain 32 real Round of 32 teams. This keeps the scoring aligned with the resolved tournament bracket.
+
+## Data Model
+
+- `profiles`: member profile, role, display name, and avatar color
+- `matches`: synced or manually edited fixtures and results
+- `predictions`: one match pick per member per match
+- `group_predictions`: one group qualifier pick set per member per group
+
+Row Level Security is enabled. Members can read shared match data, update their own profile, and write only their own unlocked picks. Admin-only operations use the Supabase secret key on the server.
 
 ## Local setup
 
-1. Create a Supabase project.
-2. Run `supabase/schema.sql` in the Supabase SQL editor.
-3. Copy `.env.example` to `.env.local`.
-4. Fill in:
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
-   - `SUPABASE_SECRET_KEY`
-   - `ADMIN_EMAILS`
-   - `POOL_INVITE_CODE` if you want to restrict signup to invited members
-   - `FOOTBALL_DATA_TOKEN` if you want automated match imports
-   - `CRON_SECRET` if you want scheduled result syncs
-5. Install dependencies and run:
+Requirements:
+
+- Node.js 20 or newer
+- A Supabase project
+- A football-data.org token if you want API sync
+
+Create a Supabase project, then run `supabase/schema.sql` in the Supabase SQL editor.
+
+Copy `.env.example` to `.env.local` and fill in the values:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+SUPABASE_SECRET_KEY=
+FOOTBALL_DATA_TOKEN=
+CRON_SECRET=
+ADMIN_EMAILS=
+POOL_INVITE_CODE=
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+```
+
+Install dependencies and start the app:
 
 ```bash
 npm install
@@ -49,46 +102,108 @@ npm run dev
 
 Open `http://localhost:3000`.
 
+## Environment Variables
+
+`NEXT_PUBLIC_SUPABASE_URL` is your Supabase project URL.
+
+`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` is the browser-safe Supabase publishable key.
+
+`SUPABASE_SECRET_KEY` is the privileged server key. Keep it in local and Vercel environment variables only.
+
+`FOOTBALL_DATA_TOKEN` is optional but required for fixture and result sync.
+
+`CRON_SECRET` protects the cron endpoint.
+
+`ADMIN_EMAILS` is a comma-separated list of emails that should become admins after signup.
+
+`POOL_INVITE_CODE` is optional. If set, new members must enter it when joining.
+
+`NEXT_PUBLIC_SITE_URL` should be the local or deployed site URL.
+
+## Supabase Auth Settings
+
+For the simplest private-pool flow, disable email confirmation in Supabase Auth settings. If email confirmation stays enabled, users must confirm email before they can sign in.
+
+Add these redirect URLs in Supabase Auth:
+
+```text
+http://localhost:3000/auth/callback
+https://your-domain.vercel.app/auth/callback
+```
+
 ## Vercel deployment
 
 1. Import the GitHub repo into Vercel.
 2. Add the same environment variables from `.env.example`.
-3. Set `NEXT_PUBLIC_SITE_URL` to the deployed site URL.
-4. In Supabase Auth settings, add the deployed callback URL:
-   `https://your-domain.vercel.app/auth/callback`
+3. Set `NEXT_PUBLIC_SITE_URL` to the deployed site URL, for example `https://your-domain.vercel.app`.
+4. Add the deployed callback URL in Supabase Auth settings.
+5. Redeploy after changing environment variables.
 
 ## Admin setup
 
 Add your email to `ADMIN_EMAILS`, sign up through the app, then visit `/admin`. The app promotes matching emails to admin on first access.
 
-## Existing database updates
+Admins can:
 
-If you already deployed an earlier version, run the newest migration in Supabase SQL editor:
+- Sync fixtures and results from football-data.org
+- Edit match status, scores, and winners manually
+- Trigger recalculation for affected match and group predictions
 
-```sql
-supabase/migrations/20260611_group_predictions.sql
-supabase/migrations/20260612_group_third_pick.sql
+## Automated Result Sync
+
+The app includes a Vercel Cron Job at `/api/cron/sync-results`.
+
+`vercel.json` uses this schedule:
+
+```json
+{
+  "path": "/api/cron/sync-results",
+  "schedule": "0 13 * * *"
+}
 ```
 
-## Invite-only signup
+That is 9:00 AM Eastern time during the World Cup. Vercel cron schedules are written in UTC.
 
-Set `POOL_INVITE_CODE` in Vercel and local env. New members will need that code when they join.
+For manual testing:
 
-## Scoring
+```bash
+curl -H "Authorization: Bearer YOUR_CRON_SECRET" \
+  https://your-domain.vercel.app/api/cron/sync-results
+```
 
-- Correct outcome: 3 points
-- Exact score bonus: 2 points
-- Group qualifier: 5 points for each picked team that reaches the Round of 32 (pick 2 or 3 per group)
-- Wrong pick: 0 points
+The endpoint imports current fixtures/results, recalculates finished match picks, recalculates group picks when the Round of 32 bracket is known, and invalidates the dashboard cache.
 
-Picks are for fun only. There is no money or wagering logic in the app.
+## Existing database updates
 
-## Automated result sync
+If you already deployed an earlier version, keep your existing data and run the migrations in Supabase SQL editor:
 
-The app includes a Vercel Cron Job at `/api/cron/sync-results`. Set `CRON_SECRET` in Vercel, then add the same value as the bearer token when testing the endpoint manually.
+```sql
+-- Run the contents of these files:
+-- supabase/migrations/20260611_group_predictions.sql
+-- supabase/migrations/20260612_group_third_pick.sql
+```
 
-The schedule in `vercel.json` runs once per day at 9:00 AM Eastern during the World Cup, which works on Vercel Hobby. For faster updates, use Vercel Pro or an external scheduler that calls the same endpoint with `Authorization: Bearer <CRON_SECRET>`.
+These migrations add group picks and the optional third group pick. They do not delete existing profiles, matches, or match predictions.
+
+## Development Checks
+
+Run TypeScript checks before opening a PR or deploying:
+
+```bash
+npm run typecheck
+```
+
+## Notes For Public Forks
+
+- Do not commit `.env.local`, `.vercel`, or other local secret files.
+- Keep `SUPABASE_SECRET_KEY`, `FOOTBALL_DATA_TOKEN`, and `CRON_SECRET` server-side only.
+- Use your own Supabase project and football-data.org token.
+- The package is marked `private` to prevent accidental npm publishing. The GitHub repo can still be public.
 
 ## License
 
 MIT
+
+## Disclaimer
+
+This project is an independent fan-made prediction pool. It is not affiliated with FIFA, Vercel, Supabase, or football-data.org.
