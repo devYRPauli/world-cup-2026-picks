@@ -18,10 +18,12 @@ const body = Hanken_Grotesk({
 
 export const metadata: Metadata = {
   title: "World Cup 2026 Picks",
-  description: "Self-hostable FIFA World Cup 2026 prediction pool for small groups."
+  description: "Self-hostable FIFA World Cup 2026 prediction pool for small groups.",
+  other: {
+    "apple-mobile-web-app-title": "FIFA"
+  }
 };
 
-// Runs before paint to set the theme from storage / system preference and avoid a flash.
 const themeScript = `(function(){try{var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}document.documentElement.dataset.theme=t;}catch(e){document.documentElement.dataset.theme='light';}})();`;
 
 export default function RootLayout({

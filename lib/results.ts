@@ -3,8 +3,6 @@ import { getAdvancedTeams, scoreAdvancers } from "@/lib/groups";
 import { scorePrediction } from "@/lib/scoring";
 import type { GroupPredictionRow, MatchRow, PredictionRow } from "@/lib/types";
 
-// 32 teams reach the Round of 32; once that many real teams appear in the
-// knockout fixtures the bracket is settled and group bonuses are final.
 const ROUND_OF_32_SIZE = 32;
 
 export async function recalculateMatchPredictions(matchId: string) {
@@ -69,8 +67,6 @@ export async function recalculateGroupPredictions() {
     throw new Error(matchesError.message);
   }
 
-  // Advancement is global (the 8 best third-placed teams span all groups), so we
-  // score every prediction against one set of teams that reached the knockouts.
   const advanced = new Set(getAdvancedTeams(matches ?? []));
   const bracketResolved = advanced.size >= ROUND_OF_32_SIZE;
 

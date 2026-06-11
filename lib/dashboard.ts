@@ -11,7 +11,6 @@ import type {
   ProfileRow
 } from "@/lib/types";
 
-// Bust this with revalidateTag(DASHBOARD_TAG) whenever picks or results change.
 export const DASHBOARD_TAG = "dashboard";
 
 type GlobalDashboard = {
@@ -26,10 +25,6 @@ type GlobalDashboard = {
   groupPicksAvailable: boolean;
 };
 
-// The expensive part of the dashboard is identical for every user: four table
-// reads plus the leaderboard / standings / pool-split aggregation. Cache it once
-// (shared across users, revalidated on any write) and only slice per-user data
-// per request.
 const loadGlobalDashboard = unstable_cache(
   async (): Promise<GlobalDashboard> => {
     const supabase = getSupabaseAdminClient();
@@ -60,7 +55,6 @@ const loadGlobalDashboard = unstable_cache(
     const profiles = profilesResult.data ?? [];
     const groupPredictions = groupPredictionsMissing ? [] : groupPredictionsResult.data ?? [];
 
-    // Plain object (not a Map) so unstable_cache can serialize it.
     const statsByMatch: Record<string, MatchPredictionStats> = {};
     for (const prediction of predictions) {
       const current = statsByMatch[prediction.match_id] ?? { total: 0, home: 0, draw: 0, away: 0 };

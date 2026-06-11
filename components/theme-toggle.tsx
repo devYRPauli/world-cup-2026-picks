@@ -32,7 +32,6 @@ export function ThemeToggle() {
       title={isDark ? "Switch to light mode" : "Switch to dark mode"}
       aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
     >
-      {/* Render nothing meaningful until mounted to avoid hydration mismatch. */}
       {theme === null ? <Sun size={18} style={{ opacity: 0 }} /> : isDark ? <Sun size={18} /> : <Moon size={18} />}
     </button>
   );

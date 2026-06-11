@@ -1,7 +1,3 @@
--- Add an optional third group pick (the "best third-placed team" longshot).
--- Up to three teams from a group can reach the new 2026 Round of 32:
--- the top two plus, for 8 of the 12 groups, the third-placed team.
-
 alter table public.group_predictions
   add column if not exists picked_team_3 text;
 
@@ -15,7 +11,6 @@ alter table public.group_predictions
     or (picked_team_3 <> picked_team_1 and picked_team_3 <> picked_team_2)
   );
 
--- Recreate the write policies so the optional third pick is validated too.
 drop policy if exists "Members can create own unlocked group predictions" on public.group_predictions;
 create policy "Members can create own unlocked group predictions"
 on public.group_predictions for insert

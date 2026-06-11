@@ -23,8 +23,6 @@ export function AppHeader({
 }: {
   profile: ProfileRow;
   active?: NavKey;
-  // When provided (on the dashboard), primary nav switches views client-side
-  // instead of triggering a full server navigation + data refetch.
   onNavigate?: (view: DashboardView) => void;
 }) {
   const [open, setOpen] = useState(false);

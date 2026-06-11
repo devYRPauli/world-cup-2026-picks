@@ -59,7 +59,6 @@ export function MatchCard({
     };
     const previous = saved;
 
-    // Flip to the saved state instantly; reconcile when the server responds.
     setSaved(optimistic);
     setEditing(false);
     setError(null);

@@ -5,8 +5,6 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { ProfileRow } from "@/lib/types";
 
-// Deduped per request: if the profile is loaded more than once while rendering a
-// single request, the auth.getUser() round-trip and profile read only run once.
 export const getCurrentProfile = cache(async () => {
   const supabase = await createSupabaseServerClient();
   const {

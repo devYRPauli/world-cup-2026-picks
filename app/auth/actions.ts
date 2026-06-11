@@ -57,7 +57,6 @@ export async function signUpAction(formData: FormData) {
     redirect(`/auth?error=${encodeURIComponent(error.message)}`);
   }
 
-  // Email confirmation is disabled, so sign-up returns an active session.
   redirect("/");
 }
 

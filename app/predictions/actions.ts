@@ -58,7 +58,6 @@ export async function savePredictionAction(formData: FormData): Promise<SaveResu
     return { ok: false, error: error.message };
   }
 
-  // Refresh leaderboard / pool split in the background; the card already updated optimistically.
   revalidateTag(DASHBOARD_TAG);
   revalidatePath("/");
   return { ok: true };
