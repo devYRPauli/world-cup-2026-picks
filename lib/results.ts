@@ -45,14 +45,37 @@ export async function recalculateMatchPredictions(matchId: string) {
   return predictions?.length ?? 0;
 }
 
-export async function recalculateManyMatches(matchIds: string[]) {
-  let touched = 0;
+const RECALC_CONCURRENCY = 5;
 
-  for (const matchId of matchIds) {
-    touched += await recalculateMatchPredictions(matchId);
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  task: (item: T) => Promise<R>
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let cursor = 0;
+
+  async function worker() {
+    while (cursor < items.length) {
+      const index = cursor;
+      cursor += 1;
+      results[index] = await task(items[index]);
+    }
   }
 
-  return touched;
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, () => worker())
+  );
+
+  return results;
+}
+
+export async function recalculateManyMatches(matchIds: string[]) {
+  const counts = await mapWithConcurrency(matchIds, RECALC_CONCURRENCY, (matchId) =>
+    recalculateMatchPredictions(matchId)
+  );
+
+  return counts.reduce((sum, count) => sum + count, 0);
 }
 
 export async function recalculateGroupPredictions() {

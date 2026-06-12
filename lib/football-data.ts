@@ -1,7 +1,18 @@
 import { getEnv } from "@/lib/env";
+import { isGroupStageMatch } from "@/lib/groups";
 import { recalculateGroupPredictions, recalculateManyMatches } from "@/lib/results";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { MatchRow, MatchStatus, Pick } from "@/lib/types";
+
+// `Pick` here is the imported match-pick type, which shadows the TS `Pick<>`
+// utility — so this snapshot type is spelled out explicitly.
+type PriorResult = {
+  external_id: string | null;
+  status: MatchStatus;
+  home_score: number | null;
+  away_score: number | null;
+  result_winner: Pick | null;
+};
 
 type FootballDataMatch = {
   id: number;
@@ -64,6 +75,25 @@ export async function syncWorldCupMatches() {
   const rows = (payload.matches ?? []).map(mapFootballDataMatch);
   const supabase = getSupabaseAdminClient();
 
+  // Snapshot the stored result fields before writing, so we only recalculate the
+  // matches whose result actually changed this sync. Untouched finished matches
+  // keep their already-correct prediction scores.
+  const { data: priorRows, error: priorError } = await supabase
+    .from("matches")
+    .select("external_id, status, home_score, away_score, result_winner")
+    .returns<PriorResult[]>();
+
+  if (priorError) {
+    throw new Error(priorError.message);
+  }
+
+  const priorByExternalId = new Map<string, PriorResult>();
+  for (const row of priorRows ?? []) {
+    if (row.external_id) {
+      priorByExternalId.set(row.external_id, row);
+    }
+  }
+
   const { data, error } = await supabase
     .from("matches")
     .upsert(rows, { onConflict: "external_id" })
@@ -74,19 +104,33 @@ export async function syncWorldCupMatches() {
     throw new Error(error.message);
   }
 
-  const finishedMatchIds = (data ?? [])
-    .filter((match) => match.status === "FINISHED")
-    .map((match) => match.id);
+  const changed = (data ?? []).filter((match) => {
+    const prior = match.external_id ? priorByExternalId.get(match.external_id) : undefined;
+    return !prior || matchResultChanged(prior, match);
+  });
 
-  const recalculated = await recalculateManyMatches(finishedMatchIds);
-  const groupRecalculated = await recalculateGroupPredictions();
+  const recalculated = await recalculateManyMatches(changed.map((match) => match.id));
+
+  // Group bonus only depends on knockout fixtures appearing or changing, so skip
+  // the group recalc unless a non-group-stage match changed this sync.
+  const knockoutChanged = changed.some((match) => !isGroupStageMatch(match));
+  const groupRecalculated = knockoutChanged ? await recalculateGroupPredictions() : 0;
 
   return {
     imported: rows.length,
-    finished: finishedMatchIds.length,
+    changed: changed.length,
     recalculated,
     groupRecalculated
   };
+}
+
+function matchResultChanged(prior: PriorResult, next: MatchRow) {
+  return (
+    prior.status !== next.status ||
+    prior.home_score !== next.home_score ||
+    prior.away_score !== next.away_score ||
+    prior.result_winner !== next.result_winner
+  );
 }
 
 function mapFootballDataMatch(match: FootballDataMatch) {
