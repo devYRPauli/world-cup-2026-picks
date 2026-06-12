@@ -69,3 +69,7 @@ export function getAdminEmails() {
     .map((email) => email.trim().toLowerCase())
     .filter(Boolean);
 }
+
+export function getPoolInviteCode() {
+  return process.env.POOL_INVITE_CODE?.trim() || null;
+}

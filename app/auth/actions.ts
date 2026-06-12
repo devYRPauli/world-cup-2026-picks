@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { getPoolInviteCode } from "@/lib/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function signInAction(formData: FormData) {
@@ -27,7 +28,7 @@ export async function signUpAction(formData: FormData) {
   const password = getString(formData, "password");
   const displayName = getString(formData, "display_name");
   const inviteCode = getString(formData, "invite_code");
-  const requiredInviteCode = process.env.POOL_INVITE_CODE?.trim();
+  const requiredInviteCode = getPoolInviteCode();
 
   if (!email || !password || !displayName) {
     redirect("/auth?error=Name,%20email,%20and%20password%20are%20required.");

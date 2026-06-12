@@ -1,6 +1,6 @@
 # World Cup 2026 Picks
 
-A self-hostable World Cup 2026 prediction pool for small groups. Members pick match outcomes, try optional exact scores, choose group-stage qualifiers, and compete on a live leaderboard.
+A self-hostable World Cup 2026 prediction pool for small groups. Members pick match outcomes, add an optional exact-score guess for bragging rights, choose group-stage qualifiers, and compete on a live leaderboard.
 
 This is built for friendly bragging rights only. It does not include odds, payments, payouts, or real-money wagering.
 
@@ -45,13 +45,14 @@ The public repo does not contain secrets. Every deployment needs its own Supabas
 ## Scoring
 
 - Correct match outcome: 3 points
-- Exact score bonus: 2 points
-- Exact score bonus only counts when the outcome is also correct
+- Predicted scoreline: optional and worth no points, kept only as an "exact scorelines" bragging stat
 - Group qualifier hit: 5 points per picked team that reaches the Round of 32
 - Wrong match pick: 0 points
 - Wrong group qualifier pick: 0 points
 
 Leaderboard ties sort by total points, then correct match picks, then display name.
+
+After changing the scoring formula, run **Admin → Recalculate scores** once, since points are stored on each prediction row rather than computed on read.
 
 ## 2026 Group Bonus
 
