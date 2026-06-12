@@ -3,7 +3,6 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { buildGroups } from "@/lib/groups";
 import { DASHBOARD_TAG } from "@/lib/dashboard";
-import { getGroupLockOverride } from "@/lib/env";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { MatchRow } from "@/lib/types";
@@ -59,15 +58,7 @@ export async function saveGroupPredictionAction(formData: FormData): Promise<Sav
     return { ok: false, error: "Choose teams from that group." };
   }
 
-  // The DB RLS check still keys off the group's earliest kickoff, so when an
-  // admin has granted this group a temporary deadline extension we write with
-  // the admin client. Every other group keeps writing under the member's RLS.
-  // The lock itself is already validated above via group.is_locked.
-  const overrideIso = getGroupLockOverride(groupName);
-  const overrideActive = overrideIso ? new Date(overrideIso).getTime() > Date.now() : false;
-  const writer = overrideActive ? admin : supabase;
-
-  const { error } = await writer.from("group_predictions").upsert(
+  const { error } = await supabase.from("group_predictions").upsert(
     {
       group_name: groupName,
       user_id: user.id,
