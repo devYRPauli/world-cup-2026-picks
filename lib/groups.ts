@@ -1,3 +1,4 @@
+import { getGroupLockOverride } from "@/lib/env";
 import type { GroupStandingRow, GroupTeam, GroupView, MatchRow } from "@/lib/types";
 
 const TBD_NAMES = new Set(["TBD", "TBA", "To Be Decided", "To be decided"]);
@@ -93,9 +94,12 @@ export function scoreAdvancers(picks: string[], advanced: Set<string>) {
 
 function buildGroup(name: string, matches: MatchRow[]): GroupView {
   const teams = getGroupTeams(matches);
-  const startsAt = matches
+  const earliestKickoff = matches
     .map((match) => match.starts_at)
     .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())[0] ?? null;
+  // A temporary deadline override (env) replaces the earliest-kickoff lock for
+  // this group only; it self-expires once the override instant passes.
+  const lockAt = getGroupLockOverride(name) ?? earliestKickoff;
   const now = Date.now();
   const standings = buildStandings(matches, teams);
   const isComplete =
@@ -109,8 +113,8 @@ function buildGroup(name: string, matches: MatchRow[]): GroupView {
     name,
     display_name: displayGroupName(name),
     teams,
-    starts_at: startsAt,
-    is_locked: startsAt ? new Date(startsAt).getTime() <= now : false,
+    starts_at: lockAt,
+    is_locked: lockAt ? new Date(lockAt).getTime() <= now : false,
     is_complete: isComplete,
     standings
   };

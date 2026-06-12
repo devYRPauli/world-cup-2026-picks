@@ -69,3 +69,36 @@ export function getAdminEmails() {
     .map((email) => email.trim().toLowerCase())
     .filter(Boolean);
 }
+
+// Temporary, reversible per-group pick-deadline overrides. Format:
+//   GROUP_PICK_OVERRIDES="Group A=2026-06-12T19:00:00Z, Group B=..."
+// A group's lock becomes the override instant instead of its earliest kickoff.
+// Self-expires once the instant passes; remove the env var afterward to clean up.
+function normalizeGroupKey(value: string) {
+  return value.replace(/[^a-z0-9]/gi, "").toUpperCase();
+}
+
+export function getGroupLockOverrides(): Map<string, string> {
+  const overrides = new Map<string, string>();
+
+  for (const pair of (process.env.GROUP_PICK_OVERRIDES ?? "").split(",")) {
+    const separator = pair.indexOf("=");
+    if (separator === -1) {
+      continue;
+    }
+
+    const key = normalizeGroupKey(pair.slice(0, separator));
+    const iso = pair.slice(separator + 1).trim();
+    if (!key || !iso || Number.isNaN(new Date(iso).getTime())) {
+      continue;
+    }
+
+    overrides.set(key, iso);
+  }
+
+  return overrides;
+}
+
+export function getGroupLockOverride(groupName: string): string | null {
+  return getGroupLockOverrides().get(normalizeGroupKey(groupName)) ?? null;
+}
