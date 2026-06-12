@@ -5,7 +5,7 @@ import { AppHeader } from "@/components/app-header";
 import { AdminResultForm } from "@/components/admin-result-form";
 import { SetupScreen } from "@/components/setup-screen";
 import { SubmitButton } from "@/components/submit-button";
-import { getGroupLockOverrides, getMissingServerEnv, hasServerSupabaseEnv } from "@/lib/env";
+import { getMissingServerEnv, hasServerSupabaseEnv } from "@/lib/env";
 import { requireCurrentProfile } from "@/lib/auth";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { MatchRow } from "@/lib/types";
@@ -63,8 +63,6 @@ export default async function AdminPage({
       {params.message ? <div className="notice">{params.message}</div> : null}
       {params.error ? <div className="notice error">{params.error}</div> : null}
 
-      <OverrideReadout />
-
       <section className="admin-list" aria-label="Matches">
         {matches?.length ? (
           matches.map((match) => <AdminResultForm key={match.id} match={match} />)
@@ -73,27 +71,5 @@ export default async function AdminPage({
         )}
       </section>
     </main>
-  );
-}
-
-function OverrideReadout() {
-  const overrides = getGroupLockOverrides();
-  const now = new Date();
-
-  return (
-    <div className="notice">
-      <strong>Pick-deadline overrides:</strong>{" "}
-      {overrides.size === 0 ? (
-        <>none set (GROUP_PICK_OVERRIDES is empty or not loaded)</>
-      ) : (
-        Array.from(overrides.entries())
-          .map(([key, iso]) => {
-            const open = new Date(iso).getTime() > now.getTime();
-            return `${key} -> ${iso} (${open ? "OPEN now" : "expired"})`;
-          })
-          .join("; ")
-      )}
-      {" / "}server time {now.toISOString()}
-    </div>
   );
 }
