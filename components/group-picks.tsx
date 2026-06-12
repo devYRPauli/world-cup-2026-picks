@@ -177,9 +177,9 @@ function GroupCard({
         <div className="standing standing-head">
           <span className="pos">#</span>
           <span className="tm">Team</span>
-          <span>P</span>
-          <span>GD</span>
-          <strong>Pts</strong>
+          <span className="num">P</span>
+          <span className="num">GD</span>
+          <strong className="num">Pts</strong>
         </div>
         {group.standings.map((row, index) => {
           const qualifies = bracketKnown ? advanced.has(row.team) : index < 2;
@@ -190,9 +190,9 @@ function GroupCard({
                 {bracketKnown && advanced.has(row.team) ? <Trophy size={14} /> : null}
                 {row.team}
               </span>
-              <span>{row.played}</span>
-              <span>{formatGd(row.goal_difference)}</span>
-              <strong>{row.points}</strong>
+              <span className="num">{row.played}</span>
+              <span className="num">{formatGd(row.goal_difference)}</span>
+              <strong className="num">{row.points}</strong>
             </div>
           );
         })}

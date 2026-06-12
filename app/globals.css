@@ -1239,6 +1239,12 @@ button {
   text-align: left;
 }
 
+/* P / GD / PTS share one alignment in both the header and the rows. */
+.standing .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 .notice {
   display: flex;
   align-items: center;
