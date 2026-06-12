@@ -85,7 +85,7 @@ const loadGlobalDashboard = unstable_cache(
       groupPicksAvailable: !groupPredictionsMissing
     };
   },
-  ["dashboard-global-v1"],
+  ["dashboard-global-v2"],
   { tags: [DASHBOARD_TAG], revalidate: 60 }
 );
 
