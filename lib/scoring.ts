@@ -39,8 +39,10 @@ export function scorePrediction(prediction: PredictionRow, match: MatchRow) {
     prediction.predicted_home_score === match.home_score &&
     prediction.predicted_away_score === match.away_score;
 
+  // Scoreline is optional and earns no points - correct outcome is a flat 3.
+  // `exactScore` is still surfaced as a bragging stat (see lib/dashboard.ts).
   return {
-    points: isCorrect ? 3 + (exactScore ? 2 : 0) : 0,
+    points: isCorrect ? 3 : 0,
     isCorrect,
     exactScore
   };

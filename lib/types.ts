@@ -70,9 +70,16 @@ export type LeaderboardRow = {
   group_points: number;
   correct: number;
   picks: number;
+  decided: number;
+  accuracy: number;
   exact_scores: number;
   group_hits: number;
   rank: number;
+};
+
+export type ProfileStats = LeaderboardRow & {
+  current_streak: number;
+  best_streak: number;
 };
 
 export type MatchPredictionStats = {

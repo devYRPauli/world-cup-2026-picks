@@ -5,7 +5,11 @@ import { redirect } from "next/navigation";
 import { requireCurrentProfile } from "@/lib/auth";
 import { DASHBOARD_TAG } from "@/lib/dashboard";
 import { syncWorldCupMatches } from "@/lib/football-data";
-import { recalculateGroupPredictions, recalculateMatchPredictions } from "@/lib/results";
+import {
+  recalculateGroupPredictions,
+  recalculateManyMatches,
+  recalculateMatchPredictions
+} from "@/lib/results";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { MatchStatus, Pick } from "@/lib/types";
 
@@ -28,6 +32,29 @@ export async function syncMatchesAction() {
   redirect(
     `/admin?message=${encodeURIComponent(
       `Synced ${result.imported} matches; recalculated ${result.recalculated} match picks and ${result.groupRecalculated} group picks.`
+    )}`
+  );
+}
+
+export async function recalculateScoresAction() {
+  await requireAdmin();
+
+  const supabase = getSupabaseAdminClient();
+  const { data, error } = await supabase.from("matches").select("id").returns<{ id: string }[]>();
+
+  if (error) {
+    redirect(`/admin?error=${encodeURIComponent(error.message)}`);
+  }
+
+  const matchPicks = await recalculateManyMatches((data ?? []).map((row) => row.id));
+  const groupPicks = await recalculateGroupPredictions();
+
+  revalidateTag(DASHBOARD_TAG);
+  revalidatePath("/");
+  revalidatePath("/admin");
+  redirect(
+    `/admin?message=${encodeURIComponent(
+      `Recalculated ${matchPicks} match picks and ${groupPicks} group picks.`
     )}`
   );
 }

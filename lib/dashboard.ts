@@ -8,7 +8,8 @@ import type {
   MatchPredictionStats,
   MatchRow,
   PredictionRow,
-  ProfileRow
+  ProfileRow,
+  ProfileStats
 } from "@/lib/types";
 
 export const DASHBOARD_TAG = "dashboard";
@@ -19,6 +20,7 @@ type GlobalDashboard = {
   groupPredictions: GroupPredictionRow[];
   groups: GroupView[];
   leaderboard: LeaderboardRow[];
+  profileStatsById: Record<string, ProfileStats>;
   statsByMatch: Record<string, MatchPredictionStats>;
   advancedTeams: string[];
   nextMatch: MatchRow | null;
@@ -68,12 +70,15 @@ const loadGlobalDashboard = unstable_cache(
         (match) => match.status === "SCHEDULED" && new Date(match.starts_at).getTime() > Date.now()
       ) ?? null;
 
+    const standings = buildStandings(profiles, predictions, groupPredictions, matches);
+
     return {
       matches,
       predictions,
       groupPredictions,
       groups: buildGroups(matches),
-      leaderboard: buildLeaderboard(profiles, predictions, groupPredictions),
+      leaderboard: standings.leaderboard,
+      profileStatsById: standings.profileStatsById,
       statsByMatch,
       advancedTeams: getAdvancedTeams(matches),
       nextMatch,
@@ -108,18 +113,35 @@ export async function getDashboardData(currentUserId: string) {
     userGroupPredictionsByGroup,
     statsByMatch,
     leaderboard: global.leaderboard,
+    profileStatsById: global.profileStatsById,
     currentLeaderboardRow,
     nextMatch: global.nextMatch,
     groupPicksAvailable: global.groupPicksAvailable
   };
 }
 
-function buildLeaderboard(
+function isExactPrediction(prediction: PredictionRow, match: MatchRow | undefined): boolean {
+  return Boolean(
+    match &&
+      match.status === "FINISHED" &&
+      match.home_score !== null &&
+      match.away_score !== null &&
+      prediction.predicted_home_score !== null &&
+      prediction.predicted_away_score !== null &&
+      prediction.predicted_home_score === match.home_score &&
+      prediction.predicted_away_score === match.away_score
+  );
+}
+
+function buildStandings(
   profiles: ProfileRow[],
   predictions: PredictionRow[],
-  groupPredictions: GroupPredictionRow[]
-): LeaderboardRow[] {
+  groupPredictions: GroupPredictionRow[],
+  matches: MatchRow[]
+): { leaderboard: LeaderboardRow[]; profileStatsById: Record<string, ProfileStats> } {
+  const matchById = new Map(matches.map((match) => [match.id, match]));
   const rows = new Map<string, LeaderboardRow>();
+  const decidedByUser = new Map<string, PredictionRow[]>();
 
   for (const profile of profiles) {
     rows.set(profile.id, {
@@ -131,6 +153,8 @@ function buildLeaderboard(
       group_points: 0,
       correct: 0,
       picks: 0,
+      decided: 0,
+      accuracy: 0,
       exact_scores: 0,
       group_hits: 0,
       rank: 0
@@ -143,14 +167,23 @@ function buildLeaderboard(
       continue;
     }
 
+    const match = matchById.get(prediction.match_id);
+
     row.match_points += prediction.points;
     row.picks += 1;
+
+    if (prediction.is_correct !== null) {
+      row.decided += 1;
+      const list = decidedByUser.get(prediction.user_id) ?? [];
+      list.push(prediction);
+      decidedByUser.set(prediction.user_id, list);
+    }
 
     if (prediction.is_correct) {
       row.correct += 1;
     }
 
-    if (prediction.points === 5) {
+    if (isExactPrediction(prediction, match)) {
       row.exact_scores += 1;
     }
   }
@@ -167,9 +200,10 @@ function buildLeaderboard(
 
   for (const row of rows.values()) {
     row.points = row.match_points + row.group_points;
+    row.accuracy = row.decided > 0 ? Math.round((row.correct / row.decided) * 100) : 0;
   }
 
-  return Array.from(rows.values())
+  const leaderboard = Array.from(rows.values())
     .sort((a, b) => {
       if (b.points !== a.points) {
         return b.points - a.points;
@@ -182,4 +216,28 @@ function buildLeaderboard(
       return a.display_name.localeCompare(b.display_name);
     })
     .map((row, index) => ({ ...row, rank: index + 1 }));
+
+  const profileStatsById: Record<string, ProfileStats> = {};
+  for (const row of leaderboard) {
+    const decided = (decidedByUser.get(row.user_id) ?? []).slice().sort((a, b) => {
+      const aStart = matchById.get(a.match_id)?.starts_at ?? "";
+      const bStart = matchById.get(b.match_id)?.starts_at ?? "";
+      return new Date(aStart).getTime() - new Date(bStart).getTime();
+    });
+
+    let best = 0;
+    let run = 0;
+    for (const prediction of decided) {
+      if (prediction.is_correct) {
+        run += 1;
+        best = Math.max(best, run);
+      } else {
+        run = 0;
+      }
+    }
+
+    profileStatsById[row.user_id] = { ...row, current_streak: run, best_streak: best };
+  }
+
+  return { leaderboard, profileStatsById };
 }

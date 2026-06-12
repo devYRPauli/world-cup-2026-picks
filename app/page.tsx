@@ -42,6 +42,7 @@ export default async function HomePage({
       groupPicksAvailable={data.groupPicksAvailable}
       advancedTeams={data.advancedTeams}
       leaderboard={data.leaderboard}
+      profileStats={data.profileStatsById}
       currentRow={data.currentLeaderboardRow}
       nextMatch={
         data.nextMatch

@@ -6,6 +6,7 @@ import { AppHeader, type DashboardView } from "@/components/app-header";
 import { GroupPicks } from "@/components/group-picks";
 import { Leaderboard } from "@/components/leaderboard";
 import { MatchCard } from "@/components/match-card";
+import { ProfileModal } from "@/components/profile-modal";
 import { minutesUntil } from "@/lib/format";
 import type {
   GroupPredictionRow,
@@ -14,7 +15,8 @@ import type {
   MatchPredictionStats,
   MatchRow,
   PredictionRow,
-  ProfileRow
+  ProfileRow,
+  ProfileStats
 } from "@/lib/types";
 
 type NextMatch = { home_team: string; away_team: string; starts_at: string };
@@ -32,6 +34,7 @@ export function DashboardClient({
   groupPicksAvailable,
   advancedTeams,
   leaderboard,
+  profileStats,
   currentRow,
   nextMatch,
   userPredictions,
@@ -50,6 +53,7 @@ export function DashboardClient({
   groupPicksAvailable: boolean;
   advancedTeams: string[];
   leaderboard: LeaderboardRow[];
+  profileStats: Record<string, ProfileStats>;
   currentRow: LeaderboardRow | null;
   nextMatch: NextMatch | null;
   userPredictions: Record<string, PredictionRow>;
@@ -58,6 +62,7 @@ export function DashboardClient({
 }) {
   const [tab, setTab] = useState<DashboardView>(initialTab);
   const [md, setMd] = useState<number | null>(initialMd);
+  const [profileId, setProfileId] = useState<string | null>(null);
 
   const groupPredictionsByGroup = useMemo(
     () => new Map(Object.entries(userGroupPredictions)),
@@ -101,9 +106,11 @@ export function DashboardClient({
           <div className="k">Your points</div>
           <div className="v tnum">{currentRow?.points ?? 0}</div>
           <div className="s">
-            {currentRow
-              ? `${currentRow.correct}/${currentRow.picks} correct / ${currentRow.exact_scores} exact`
-              : "No picks yet"}
+            {currentRow && currentRow.decided > 0
+              ? `${currentRow.correct} of ${currentRow.decided} correct / ${currentRow.accuracy}%`
+              : currentRow
+                ? `${currentRow.picks} picks in`
+                : "No picks yet"}
           </div>
         </div>
         <div className="stat">
@@ -118,63 +125,62 @@ export function DashboardClient({
       </section>
 
       {tab === "leaderboard" ? (
-        <Leaderboard rows={leaderboard} currentUserId={userId} variant="full" />
+        <Leaderboard rows={leaderboard} currentUserId={userId} variant="full" onSelect={setProfileId} />
+      ) : tab === "groups" ? (
+        <section>
+          <p className="section-eyebrow">Group qualifier picks</p>
+          <GroupPicks
+            available={groupPicksAvailable}
+            groups={groups}
+            predictionsByGroup={groupPredictionsByGroup}
+            advancedTeams={advancedTeams}
+          />
+        </section>
       ) : (
-        <div className="layout">
-          <section>
-            {tab === "groups" ? (
-              <>
-                <p className="section-eyebrow">Group qualifier picks</p>
-                <GroupPicks
-                  available={groupPicksAvailable}
-                  groups={groups}
-                  predictionsByGroup={groupPredictionsByGroup}
-                  advancedTeams={advancedTeams}
+        <section>
+          {matchdays.length ? (
+            <nav className="tabs" aria-label="Matchdays">
+              {matchdays.map((matchday) => (
+                <button
+                  key={matchday}
+                  type="button"
+                  className={`tab ${md === matchday ? "active" : ""}`}
+                  onClick={() => selectMatchday(matchday)}
+                >
+                  Matchday {matchday}
+                </button>
+              ))}
+            </nav>
+          ) : null}
+          <p className="section-eyebrow">
+            {md ? `Matchday ${md}` : "Matches"} / {shownMatches.length}{" "}
+            {shownMatches.length === 1 ? "match" : "matches"}
+          </p>
+          {shownMatches.length ? (
+            <div className="cards">
+              {shownMatches.map((match) => (
+                <MatchCard
+                  key={match.id}
+                  match={match}
+                  prediction={userPredictions[match.id]}
+                  stats={stats[match.id]}
                 />
-              </>
-            ) : (
-              <>
-                {matchdays.length ? (
-                  <nav className="tabs" aria-label="Matchdays">
-                    {matchdays.map((matchday) => (
-                      <button
-                        key={matchday}
-                        type="button"
-                        className={`tab ${md === matchday ? "active" : ""}`}
-                        onClick={() => selectMatchday(matchday)}
-                      >
-                        Matchday {matchday}
-                      </button>
-                    ))}
-                  </nav>
-                ) : null}
-                <p className="section-eyebrow">
-                  {md ? `Matchday ${md}` : "Matches"} / {shownMatches.length}{" "}
-                  {shownMatches.length === 1 ? "match" : "matches"}
-                </p>
-                {shownMatches.length ? (
-                  <div className="cards">
-                    {shownMatches.map((match) => (
-                      <MatchCard
-                        key={match.id}
-                        match={match}
-                        prediction={userPredictions[match.id]}
-                        stats={stats[match.id]}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="empty-state">
-                    <CalendarClock size={22} style={{ opacity: 0.6, marginBottom: 8 }} />
-                    <div>No known group-stage matches here yet. Sync fixtures from the admin page.</div>
-                  </div>
-                )}
-              </>
-            )}
-          </section>
-          <Leaderboard rows={leaderboard} currentUserId={userId} />
-        </div>
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state">
+              <CalendarClock size={22} style={{ opacity: 0.6, marginBottom: 8 }} />
+              <div>No known group-stage matches here yet. Sync fixtures from the admin page.</div>
+            </div>
+          )}
+        </section>
       )}
+
+      <ProfileModal
+        stats={profileId ? profileStats[profileId] ?? null : null}
+        isCurrentUser={profileId === userId}
+        onClose={() => setProfileId(null)}
+      />
     </main>
   );
 }
