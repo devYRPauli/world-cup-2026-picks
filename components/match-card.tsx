@@ -251,7 +251,15 @@ function TeamBadge({ name, badge, away }: { name: string; badge: string | null; 
 }
 
 function Badge({ name, badge }: { name: string; badge: string | null }) {
-  return <span className="flag">{badge ? <img alt="" src={badge} /> : name.slice(0, 3).toUpperCase()}</span>;
+  return (
+    <span className="flag">
+      {badge ? (
+        <img alt="" src={badge} width={30} height={30} loading="lazy" decoding="async" />
+      ) : (
+        name.slice(0, 3).toUpperCase()
+      )}
+    </span>
+  );
 }
 
 function Choice({
