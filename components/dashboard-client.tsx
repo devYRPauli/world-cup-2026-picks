@@ -7,7 +7,7 @@ import { GroupPicks } from "@/components/group-picks";
 import { Leaderboard } from "@/components/leaderboard";
 import { MatchCard } from "@/components/match-card";
 import { ProfileModal } from "@/components/profile-modal";
-import { minutesUntil } from "@/lib/format";
+import { isMatchLocked, minutesUntil } from "@/lib/format";
 import type {
   GroupPredictionRow,
   GroupView,
@@ -85,7 +85,18 @@ export function DashboardClient({
 
   const activeNav = tab === "matches" ? "home" : tab;
   const shownMatches = md ? visibleMatches.filter((match) => match.matchday === md) : [];
+  const openMatches = shownMatches.filter((match) => !isMatchLocked(match));
+  const lockedMatches = shownMatches.filter((match) => isMatchLocked(match));
   const nextLockMinutes = nextMatch ? minutesUntil(nextMatch.starts_at) : null;
+
+  const renderCard = (match: MatchRow) => (
+    <MatchCard
+      key={match.id}
+      match={match}
+      prediction={userPredictions[match.id]}
+      stats={stats[match.id]}
+    />
+  );
 
   return (
     <main className="shell">
@@ -155,18 +166,22 @@ export function DashboardClient({
           <p className="section-eyebrow">
             {md ? `Matchday ${md}` : "Matches"} / {shownMatches.length}{" "}
             {shownMatches.length === 1 ? "match" : "matches"}
+            {openMatches.length ? <span className="eyebrow-open"> / {openMatches.length} open</span> : null}
           </p>
           {shownMatches.length ? (
-            <div className="cards">
-              {shownMatches.map((match) => (
-                <MatchCard
-                  key={match.id}
-                  match={match}
-                  prediction={userPredictions[match.id]}
-                  stats={stats[match.id]}
-                />
-              ))}
-            </div>
+            <>
+              {openMatches.length ? <div className="cards">{openMatches.map(renderCard)}</div> : null}
+              {lockedMatches.length && openMatches.length ? (
+                <details className="locked-group">
+                  <summary>
+                    {lockedMatches.length} locked &amp; completed
+                  </summary>
+                  <div className="cards">{lockedMatches.map(renderCard)}</div>
+                </details>
+              ) : lockedMatches.length ? (
+                <div className="cards">{lockedMatches.map(renderCard)}</div>
+              ) : null}
+            </>
           ) : (
             <div className="empty-state">
               <CalendarClock size={22} style={{ opacity: 0.6, marginBottom: 8 }} />

@@ -379,6 +379,54 @@ button {
   gap: 14px;
 }
 
+.eyebrow-open {
+  color: var(--accent);
+}
+
+.locked-group {
+  margin-top: 16px;
+}
+
+.locked-group > summary {
+  list-style: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 0.82rem;
+  user-select: none;
+  transition: color 0.14s, border-color 0.14s;
+}
+
+.locked-group > summary::-webkit-details-marker {
+  display: none;
+}
+
+.locked-group > summary::before {
+  content: "▸";
+  font-size: 0.7rem;
+  color: var(--faint);
+}
+
+.locked-group[open] > summary::before {
+  content: "▾";
+}
+
+.locked-group > summary:hover {
+  color: var(--ink);
+  border-color: var(--line-strong);
+}
+
+.locked-group[open] > .cards {
+  margin-top: 14px;
+}
+
 .card {
   background: var(--card);
   border: 1px solid var(--line);

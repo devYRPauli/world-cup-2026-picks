@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { CalendarDays, Check, Lock, Pencil } from "lucide-react";
 import { savePredictionAction } from "@/app/predictions/actions";
 import { StatusPill } from "@/components/status-pill";
-import { formatDateTime, minutesUntil, toTitleCase } from "@/lib/format";
+import { formatDateTime, isMatchLocked, minutesUntil, toTitleCase } from "@/lib/format";
 import { pickLabel } from "@/lib/scoring";
 import type { MatchPredictionStats, MatchRow, Pick, PredictionRow } from "@/lib/types";
 
@@ -35,7 +35,7 @@ export function MatchCard({
   prediction?: PredictionRow;
   stats?: MatchPredictionStats;
 }) {
-  const locked = new Date(match.starts_at).getTime() <= Date.now() || match.status !== "SCHEDULED";
+  const locked = isMatchLocked(match);
 
   const [saved, setSaved] = useState<SavedPick | null>(toSaved(prediction));
   const [editing, setEditing] = useState(false);

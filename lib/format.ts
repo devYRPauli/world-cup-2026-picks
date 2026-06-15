@@ -1,3 +1,9 @@
+import type { MatchRow } from "@/lib/types";
+
+export function isMatchLocked(match: MatchRow) {
+  return new Date(match.starts_at).getTime() <= Date.now() || match.status !== "SCHEDULED";
+}
+
 export function formatDateTime(value: string) {
   return new Intl.DateTimeFormat("en-US", {
     weekday: "short",
