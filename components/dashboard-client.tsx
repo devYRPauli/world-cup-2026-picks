@@ -85,8 +85,11 @@ export function DashboardClient({
 
   const activeNav = tab === "matches" ? "home" : tab;
   const shownMatches = md ? visibleMatches.filter((match) => match.matchday === md) : [];
-  const openMatches = shownMatches.filter((match) => !isMatchLocked(match));
   const lockedMatches = shownMatches.filter((match) => isMatchLocked(match));
+  const openByPick = (picked: boolean) =>
+    shownMatches.filter((match) => !isMatchLocked(match) && Boolean(userPredictions[match.id]) === picked);
+  const unpickedMatches = openByPick(false);
+  const openMatches = [...unpickedMatches, ...openByPick(true)];
   const nextLockMinutes = nextMatch ? minutesUntil(nextMatch.starts_at) : null;
 
   const renderCard = (match: MatchRow) => (
@@ -167,6 +170,9 @@ export function DashboardClient({
             {md ? `Matchday ${md}` : "Matches"} / {shownMatches.length}{" "}
             {shownMatches.length === 1 ? "match" : "matches"}
             {openMatches.length ? <span className="eyebrow-open"> / {openMatches.length} open</span> : null}
+            {unpickedMatches.length ? (
+              <span className="eyebrow-nudge"> / {unpickedMatches.length} need your pick</span>
+            ) : null}
           </p>
           {shownMatches.length ? (
             <>

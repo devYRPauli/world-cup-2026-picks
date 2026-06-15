@@ -383,6 +383,11 @@ button {
   color: var(--accent);
 }
 
+.eyebrow-nudge {
+  color: var(--red);
+  font-weight: 800;
+}
+
 .locked-group {
   margin-top: 16px;
 }
