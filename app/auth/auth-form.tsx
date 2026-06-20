@@ -7,10 +7,12 @@ import { SubmitButton } from "@/components/submit-button";
 
 export function AuthForm({
   message,
-  error
+  error,
+  inviteRequired
 }: {
   message?: string;
   error?: string;
+  inviteRequired: boolean;
 }) {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const isSignup = mode === "signup";
@@ -57,10 +59,12 @@ export function AuthForm({
               <label htmlFor="display_name">Name</label>
               <input id="display_name" name="display_name" placeholder="Your leaderboard name" required />
             </div>
-            <div className="field">
-              <label htmlFor="invite_code">Invite code</label>
-              <input id="invite_code" name="invite_code" placeholder="Shared invite code" />
-            </div>
+            {inviteRequired ? (
+              <div className="field">
+                <label htmlFor="invite_code">Invite code</label>
+                <input id="invite_code" name="invite_code" placeholder="Shared invite code" required />
+              </div>
+            ) : null}
           </>
         ) : null}
         <div className="field">

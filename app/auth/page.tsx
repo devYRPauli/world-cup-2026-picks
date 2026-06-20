@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { AuthForm } from "@/app/auth/auth-form";
-import { getMissingServerEnv, hasPublicSupabaseEnv } from "@/lib/env";
+import { getMissingServerEnv, getPoolInviteCode, hasPublicSupabaseEnv } from "@/lib/env";
 import { getCurrentProfile } from "@/lib/auth";
 import { SetupScreen } from "@/components/setup-screen";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -28,7 +28,7 @@ export default async function AuthPage({
       <div className="float-toggle">
         <ThemeToggle />
       </div>
-      <AuthForm message={params.message} error={params.error} />
+      <AuthForm message={params.message} error={params.error} inviteRequired={Boolean(getPoolInviteCode())} />
     </main>
   );
 }
