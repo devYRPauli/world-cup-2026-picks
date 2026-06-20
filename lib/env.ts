@@ -73,3 +73,7 @@ export function getAdminEmails() {
 export function getPoolInviteCode() {
   return process.env.POOL_INVITE_CODE?.trim() || null;
 }
+
+export function getCronSecret() {
+  return process.env.CRON_SECRET ?? null;
+}

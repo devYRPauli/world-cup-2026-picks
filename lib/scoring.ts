@@ -1,6 +1,6 @@
 import type { MatchRow, Pick, PredictionRow } from "@/lib/types";
 
-export function resolveWinner(match: PickableMatch): Pick | null {
+function resolveWinner(match: PickableMatch): Pick | null {
   if (match.result_winner) {
     return match.result_winner;
   }

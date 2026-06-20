@@ -1,13 +1,14 @@
 import { revalidateTag } from "next/cache";
 import { NextResponse, type NextRequest } from "next/server";
 import { DASHBOARD_TAG } from "@/lib/dashboard";
+import { getCronSecret } from "@/lib/env";
 import { syncWorldCupMatches } from "@/lib/football-data";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
-  const secret = process.env.CRON_SECRET;
+  const secret = getCronSecret();
   const authorization = request.headers.get("authorization");
 
   if (!secret || authorization !== `Bearer ${secret}`) {

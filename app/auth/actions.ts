@@ -2,7 +2,7 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { getPoolInviteCode } from "@/lib/env";
+import { getEnv, getPoolInviteCode } from "@/lib/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function signInAction(formData: FormData) {
@@ -40,7 +40,7 @@ export async function signUpAction(formData: FormData) {
 
   const headerStore = await headers();
   const origin =
-    headerStore.get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+    headerStore.get("origin") ?? getEnv().siteUrl ?? "http://localhost:3000";
   const supabase = await createSupabaseServerClient();
 
   const { error } = await supabase.auth.signUp({
