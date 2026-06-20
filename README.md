@@ -12,6 +12,7 @@ This is built for friendly bragging rights only. It does not include odds, payme
 - Fixture and result import from football-data.org
 - Manual result editing for admins when the API is late or unavailable
 - Matchday tabs for group-stage matches
+- Open matches surface first per matchday, locked and finished ones collapse, and a counter shows how many still need a pick
 - Client-side tab switching after the dashboard loads
 - Optimistic pick saving with no full-page refresh
 - Match picks that lock at kickoff
