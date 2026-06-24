@@ -23,6 +23,74 @@ export function displayGroupName(groupName: string | null) {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
+export const KNOCKOUT_ROUNDS = [
+  "LAST_32",
+  "LAST_16",
+  "QUARTER_FINALS",
+  "SEMI_FINALS",
+  "THIRD_PLACE",
+  "FINAL"
+] as const;
+
+export type KnockoutRound = (typeof KNOCKOUT_ROUNDS)[number];
+
+const ROUND_LABELS: Record<KnockoutRound, string> = {
+  LAST_32: "Round of 32",
+  LAST_16: "Round of 16",
+  QUARTER_FINALS: "Quarter-finals",
+  SEMI_FINALS: "Semi-finals",
+  THIRD_PLACE: "Third place",
+  FINAL: "Final"
+};
+
+export function roundLabel(stage: string | null): string {
+  if (!stage) {
+    return "Knockout";
+  }
+  const key = stage.toUpperCase() as KnockoutRound;
+  return ROUND_LABELS[key] ?? stage.replaceAll("_", " ");
+}
+
+export function isKnockout(match: MatchRow): boolean {
+  return !isGroupStageMatch(match);
+}
+
+export function isKnockoutPhase(matches: MatchRow[]): boolean {
+  const groupMatches = matches.filter(isGroupStageMatch);
+  return groupMatches.length > 0 && groupMatches.every((match) => match.status === "FINISHED");
+}
+
+export function getKnockoutMatches(matches: MatchRow[]): MatchRow[] {
+  return matches.filter((match) => isKnockout(match) && hasKnownTeams(match));
+}
+
+export function getKnockoutRounds(
+  matches: MatchRow[]
+): { stage: KnockoutRound; label: string; teamsSet: boolean }[] {
+  const byStage = new Map<KnockoutRound, MatchRow[]>();
+  for (const match of matches) {
+    if (!isKnockout(match) || !match.stage) {
+      continue;
+    }
+    const key = match.stage.toUpperCase();
+    if (!KNOCKOUT_ROUNDS.includes(key as KnockoutRound)) {
+      continue;
+    }
+    const round = key as KnockoutRound;
+    const list = byStage.get(round) ?? [];
+    list.push(match);
+    byStage.set(round, list);
+  }
+  return KNOCKOUT_ROUNDS.filter((stage) => byStage.has(stage)).map((stage) => {
+    const list = byStage.get(stage) ?? [];
+    return {
+      stage,
+      label: ROUND_LABELS[stage],
+      teamsSet: list.length > 0 && list.every(hasKnownTeams)
+    };
+  });
+}
+
 export function getVisibleMatchdays(matches: MatchRow[]) {
   const values = new Set<number>();
 
