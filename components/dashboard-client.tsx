@@ -30,6 +30,10 @@ export function DashboardClient({
   error,
   visibleMatches,
   matchdays,
+  knockoutPhase,
+  knockoutMatches,
+  knockoutRounds,
+  initialRound,
   groups,
   groupPicksAvailable,
   advancedTeams,
@@ -49,6 +53,10 @@ export function DashboardClient({
   error: string | null;
   visibleMatches: MatchRow[];
   matchdays: number[];
+  knockoutPhase: boolean;
+  knockoutMatches: MatchRow[];
+  knockoutRounds: { stage: string; label: string; teamsSet: boolean }[];
+  initialRound: string | null;
   groups: GroupView[];
   groupPicksAvailable: boolean;
   advancedTeams: string[];
@@ -62,6 +70,7 @@ export function DashboardClient({
 }) {
   const [tab, setTab] = useState<DashboardView>(initialTab);
   const [md, setMd] = useState<number | null>(initialMd);
+  const [round, setRound] = useState<string | null>(initialRound);
   const [profileId, setProfileId] = useState<string | null>(null);
 
   const groupPredictionsByGroup = useMemo(
@@ -74,7 +83,17 @@ export function DashboardClient({
     if (view === "matches" && matchday !== md) {
       setMd(matchday);
     }
-    syncUrl(view, view === "matches" ? matchday : null);
+    if (view === "matches" && knockoutPhase) {
+      syncUrl(view, null, round);
+    } else {
+      syncUrl(view, view === "matches" ? matchday : null);
+    }
+  }
+
+  function selectRound(stage: string) {
+    setRound(stage);
+    setTab("matches");
+    syncUrl("matches", null, stage);
   }
 
   function selectMatchday(value: number) {
@@ -84,7 +103,26 @@ export function DashboardClient({
   }
 
   const activeNav = tab === "matches" ? "home" : tab;
-  const shownMatches = md ? visibleMatches.filter((match) => match.matchday === md) : [];
+  const shownMatches = knockoutPhase
+    ? round
+      ? knockoutMatches.filter((match) => (match.stage ?? "").toUpperCase() === round)
+      : []
+    : md
+      ? visibleMatches.filter((match) => match.matchday === md)
+      : [];
+  const selectedRound = knockoutPhase
+    ? knockoutRounds.find((entry) => entry.stage === round) ?? null
+    : null;
+  const segLabel = knockoutPhase
+    ? selectedRound?.label ?? "Knockout"
+    : md
+      ? `Matchday ${md}`
+      : "Matches";
+  const emptyMessage = knockoutPhase
+    ? selectedRound && !selectedRound.teamsSet
+      ? "This round opens once its teams are decided."
+      : "No knockout matches here yet."
+    : "No known group-stage matches here yet. Sync fixtures from the admin page.";
   const lockedMatches = shownMatches.filter((match) => isMatchLocked(match));
   const openByPick = (picked: boolean) =>
     shownMatches.filter((match) => !isMatchLocked(match) && Boolean(userPredictions[match.id]) === picked);
@@ -152,7 +190,22 @@ export function DashboardClient({
         </section>
       ) : (
         <section>
-          {matchdays.length ? (
+          {knockoutPhase ? (
+            knockoutRounds.length ? (
+              <nav className="tabs" aria-label="Rounds">
+                {knockoutRounds.map((entry) => (
+                  <button
+                    key={entry.stage}
+                    type="button"
+                    className={`tab ${round === entry.stage ? "active" : ""}`}
+                    onClick={() => selectRound(entry.stage)}
+                  >
+                    {entry.label}
+                  </button>
+                ))}
+              </nav>
+            ) : null
+          ) : matchdays.length ? (
             <nav className="tabs" aria-label="Matchdays">
               {matchdays.map((matchday) => (
                 <button
@@ -167,8 +220,7 @@ export function DashboardClient({
             </nav>
           ) : null}
           <p className="section-eyebrow">
-            {md ? `Matchday ${md}` : "Matches"} / {shownMatches.length}{" "}
-            {shownMatches.length === 1 ? "match" : "matches"}
+            {segLabel} / {shownMatches.length} {shownMatches.length === 1 ? "match" : "matches"}
             {openMatches.length ? <span className="eyebrow-open"> / {openMatches.length} open</span> : null}
             {unpickedMatches.length ? (
               <span className="eyebrow-nudge"> / {unpickedMatches.length} need your pick</span>
@@ -191,7 +243,7 @@ export function DashboardClient({
           ) : (
             <div className="empty-state">
               <CalendarClock size={22} style={{ opacity: 0.6, marginBottom: 8 }} />
-              <div>No known group-stage matches here yet. Sync fixtures from the admin page.</div>
+              <div>{emptyMessage}</div>
             </div>
           )}
         </section>
@@ -206,7 +258,7 @@ export function DashboardClient({
   );
 }
 
-function syncUrl(view: DashboardView, md: number | null) {
+function syncUrl(view: DashboardView, md: number | null, round: string | null = null) {
   if (typeof window === "undefined") {
     return;
   }
@@ -214,6 +266,9 @@ function syncUrl(view: DashboardView, md: number | null) {
   params.set("tab", view);
   if (view === "matches" && md !== null) {
     params.set("md", String(md));
+  }
+  if (view === "matches" && round !== null) {
+    params.set("round", round);
   }
   window.history.replaceState(null, "", `/?${params.toString()}`);
 }

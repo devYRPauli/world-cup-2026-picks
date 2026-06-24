@@ -3,7 +3,13 @@ import { SetupScreen } from "@/components/setup-screen";
 import type { DashboardView } from "@/components/app-header";
 import { getDashboardData } from "@/lib/dashboard";
 import { getMissingServerEnv, hasServerSupabaseEnv } from "@/lib/env";
-import { getVisibleMatchdays, getVisibleMatches } from "@/lib/groups";
+import {
+  getKnockoutMatches,
+  getKnockoutRounds,
+  getVisibleMatchdays,
+  getVisibleMatches,
+  isKnockoutPhase
+} from "@/lib/groups";
 import { requireCurrentProfile } from "@/lib/auth";
 import type { MatchRow } from "@/lib/types";
 
@@ -12,7 +18,7 @@ export const dynamic = "force-dynamic";
 export default async function HomePage({
   searchParams
 }: {
-  searchParams: Promise<{ tab?: string; md?: string; message?: string; error?: string }>;
+  searchParams: Promise<{ tab?: string; md?: string; round?: string; message?: string; error?: string }>;
 }) {
   if (!hasServerSupabaseEnv()) {
     return <SetupScreen missing={getMissingServerEnv()} />;
@@ -27,6 +33,9 @@ export default async function HomePage({
   const data = await getDashboardData(session.user.id);
   const visibleMatches = getVisibleMatches(data.matches);
   const matchdays = getVisibleMatchdays(data.matches);
+  const knockoutPhase = isKnockoutPhase(data.matches);
+  const knockoutMatches = getKnockoutMatches(data.matches);
+  const knockoutRounds = getKnockoutRounds(data.matches);
 
   return (
     <DashboardClient
@@ -38,6 +47,10 @@ export default async function HomePage({
       error={typeof params.error === "string" ? params.error : null}
       visibleMatches={visibleMatches}
       matchdays={matchdays}
+      knockoutPhase={knockoutPhase}
+      knockoutMatches={knockoutMatches}
+      knockoutRounds={knockoutRounds}
+      initialRound={resolveRound(params.round, knockoutRounds, data.matches)}
       groups={data.groups}
       groupPicksAvailable={data.groupPicksAvailable}
       advancedTeams={data.advancedTeams}
@@ -77,4 +90,32 @@ function resolveMatchday(md: string | undefined, matches: MatchRow[], matchdays:
   if (next?.matchday && matchdays.includes(next.matchday)) return next.matchday;
 
   return matchdays[0] ?? null;
+}
+
+function resolveRound(
+  round: string | undefined,
+  rounds: { stage: string }[],
+  matches: MatchRow[]
+): string | null {
+  if (rounds.length === 0) {
+    return null;
+  }
+
+  if (round) {
+    const upper = round.toUpperCase();
+    if (rounds.some((entry) => entry.stage === upper)) {
+      return upper;
+    }
+  }
+
+  const now = Date.now();
+  const next = matches.find((match) => new Date(match.starts_at).getTime() > now);
+  if (next?.stage) {
+    const upper = next.stage.toUpperCase();
+    if (rounds.some((entry) => entry.stage === upper)) {
+      return upper;
+    }
+  }
+
+  return rounds[0].stage;
 }
