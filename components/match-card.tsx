@@ -6,6 +6,7 @@ import { savePredictionAction } from "@/app/predictions/actions";
 import { StatusPill } from "@/components/status-pill";
 import { formatDateTime, isMatchLocked, minutesUntil, toTitleCase } from "@/lib/format";
 import { pickLabel } from "@/lib/scoring";
+import { isKnockout, roundLabel } from "@/lib/groups";
 import type { MatchPredictionStats, MatchRow, Pick, PredictionRow } from "@/lib/types";
 
 type SavedPick = {
@@ -36,6 +37,7 @@ export function MatchCard({
   stats?: MatchPredictionStats;
 }) {
   const locked = isMatchLocked(match);
+  const knockout = isKnockout(match);
 
   const [saved, setSaved] = useState<SavedPick | null>(toSaved(prediction));
   const [editing, setEditing] = useState(false);
@@ -77,7 +79,7 @@ export function MatchCard({
     <article className="card">
       <div className="card-top">
         <div className="meta">
-          <span>{match.group_name ? toTitleCase(match.group_name) : toTitleCase(match.stage)}</span>
+          <span>{match.group_name ? toTitleCase(match.group_name) : roundLabel(match.stage)}</span>
           {match.matchday ? (
             <>
               <span className="dot">/</span>
@@ -108,9 +110,21 @@ export function MatchCard({
           <form onSubmit={handleSubmit} className="pickform">
             <input name="match_id" type="hidden" value={match.id} />
             <div className="choices" aria-label="Pick outcome">
-              <Choice label={match.home_team} value="home" defaultChecked={saved?.pick === "home"} />
-              <Choice label="Draw" value="draw" defaultChecked={saved?.pick === "draw" || !saved} />
-              <Choice label={match.away_team} value="away" defaultChecked={saved?.pick === "away"} />
+              <Choice
+                label={match.home_team}
+                value="home"
+                defaultChecked={saved?.pick === "home"}
+                required={knockout}
+              />
+              {knockout ? null : (
+                <Choice label="Draw" value="draw" defaultChecked={saved?.pick === "draw" || !saved} />
+              )}
+              <Choice
+                label={match.away_team}
+                value="away"
+                defaultChecked={saved?.pick === "away"}
+                required={knockout}
+              />
             </div>
             <div className="scorerow">
               <div className="field">
@@ -177,7 +191,7 @@ export function MatchCard({
           </div>
         )}
 
-        {stats && stats.total > 0 ? <PoolSplit stats={stats} match={match} /> : null}
+        {stats && stats.total > 0 ? <PoolSplit stats={stats} match={match} knockout={knockout} /> : null}
       </div>
     </article>
   );
@@ -219,9 +233,19 @@ function lockCountdown(startsAt: string) {
   return `locks in ${Math.round(hours / 24)}d`;
 }
 
-function PoolSplit({ stats, match }: { stats: MatchPredictionStats; match: MatchRow }) {
+function PoolSplit({
+  stats,
+  match,
+  knockout
+}: {
+  stats: MatchPredictionStats;
+  match: MatchRow;
+  knockout: boolean;
+}) {
   const pct = (n: number) => (stats.total ? Math.round((n / stats.total) * 100) : 0);
-  const leader = Math.max(stats.home, stats.draw, stats.away);
+  const leader = knockout
+    ? Math.max(stats.home, stats.away)
+    : Math.max(stats.home, stats.draw, stats.away);
   const leaderLabel =
     leader === stats.home ? shortName(match.home_team) : leader === stats.away ? shortName(match.away_team) : "Draw";
 
@@ -230,7 +254,7 @@ function PoolSplit({ stats, match }: { stats: MatchPredictionStats; match: Match
       <span>Pool</span>
       <span className="bar" aria-hidden="true">
         <i className="h" style={{ width: `${pct(stats.home)}%` }} />
-        <i className="d" style={{ width: `${pct(stats.draw)}%` }} />
+        {knockout ? null : <i className="d" style={{ width: `${pct(stats.draw)}%` }} />}
         <i className="a" style={{ width: `${pct(stats.away)}%` }} />
       </span>
       <span className="tnum">
@@ -265,15 +289,17 @@ function Badge({ name, badge }: { name: string; badge: string | null }) {
 function Choice({
   label,
   value,
-  defaultChecked
+  defaultChecked,
+  required
 }: {
   label: string;
   value: Pick;
   defaultChecked: boolean;
+  required?: boolean;
 }) {
   return (
     <label className="choice">
-      <input defaultChecked={defaultChecked} name="pick" type="radio" value={value} />
+      <input defaultChecked={defaultChecked} name="pick" type="radio" value={value} required={required} />
       {label}
     </label>
   );

@@ -4,6 +4,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { DASHBOARD_TAG } from "@/lib/dashboard";
+import { isKnockout } from "@/lib/groups";
 import type { MatchRow, Pick } from "@/lib/types";
 
 export type SaveResult = { ok: true } | { ok: false; error: string };
@@ -41,6 +42,10 @@ export async function savePredictionAction(formData: FormData): Promise<SaveResu
   const locked = match.status !== "SCHEDULED" || new Date(match.starts_at).getTime() <= Date.now();
   if (locked) {
     return { ok: false, error: "That match is already locked." };
+  }
+
+  if (isKnockout(match) && pick === "draw") {
+    return { ok: false, error: "Knockout matches can't end in a draw - pick a team." };
   }
 
   const { error } = await supabase.from("predictions").upsert(
