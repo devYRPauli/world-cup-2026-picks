@@ -71,6 +71,7 @@ export type LeaderboardRow = {
   correct: number;
   picks: number;
   decided: number;
+  decided_total: number;
   accuracy: number;
   exact_scores: number;
   group_hits: number;

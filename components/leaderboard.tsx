@@ -22,14 +22,19 @@ export function Leaderboard({
   const showSort = variant === "full";
   const byAccuracy = showSort && sortBy === "accuracy";
 
+  // Standardized accuracy: correct picks over every decided game in the pool, so
+  // skipping games is penalized the same as getting them wrong. decided_total is
+  // shared across players, giving one comparable accuracy number for everyone.
+  const stdAccuracy = (row: LeaderboardRow) =>
+    row.decided_total > 0 ? Math.round((row.correct / row.decided_total) * 100) : 0;
+
   const ordered = byAccuracy
     ? rows
         .slice()
         .sort(
           (a, b) =>
-            b.accuracy - a.accuracy ||
+            stdAccuracy(b) - stdAccuracy(a) ||
             b.decided - a.decided ||
-            b.correct - a.correct ||
             a.display_name.localeCompare(b.display_name)
         )
         .map((row, index) => ({ ...row, rank: index + 1 }))
@@ -99,13 +104,19 @@ export function Leaderboard({
                     {row.user_id === currentUserId ? " (you)" : ""}
                   </span>
                   <span className="sub">
-                    {row.decided > 0 ? `${row.correct} of ${row.decided} correct` : "No results yet"}
+                    {byAccuracy
+                      ? row.decided_total > 0
+                        ? `${row.correct} of ${row.decided_total} correct, ${row.decided} bet`
+                        : "No results yet"
+                      : row.decided > 0
+                        ? `${row.correct} of ${row.decided} correct`
+                        : "No results yet"}
                     {!byAccuracy && row.group_points > 0 ? ` / ${row.group_points} group pts` : ""}
                   </span>
                 </div>
               </div>
               <div className="pts2 tnum">
-                {byAccuracy ? row.accuracy : row.points}
+                {byAccuracy ? stdAccuracy(row) : row.points}
                 <small>{byAccuracy ? "%" : "PTS"}</small>
               </div>
             </div>

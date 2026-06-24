@@ -143,6 +143,10 @@ function buildStandings(
   const rows = new Map<string, LeaderboardRow>();
   const decidedByUser = new Map<string, PredictionRow[]>();
 
+  // Shared denominator for standardized accuracy: every match that has a result,
+  // so skipping a game counts the same as getting it wrong. Same for all players.
+  const decidedTotal = matches.filter((match) => match.result_winner !== null).length;
+
   for (const profile of profiles) {
     rows.set(profile.id, {
       user_id: profile.id,
@@ -154,6 +158,7 @@ function buildStandings(
       correct: 0,
       picks: 0,
       decided: 0,
+      decided_total: decidedTotal,
       accuracy: 0,
       exact_scores: 0,
       group_hits: 0,
