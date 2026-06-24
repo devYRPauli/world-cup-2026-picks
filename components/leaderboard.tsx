@@ -1,5 +1,10 @@
+"use client";
+
+import { useState } from "react";
 import { Trophy } from "lucide-react";
 import type { LeaderboardRow } from "@/lib/types";
+
+type SortBy = "points" | "accuracy";
 
 export function Leaderboard({
   rows,
@@ -13,6 +18,22 @@ export function Leaderboard({
   onSelect?: (userId: string) => void;
 }) {
   const className = variant === "full" ? "lb-full" : "aside";
+  const [sortBy, setSortBy] = useState<SortBy>("points");
+  const showSort = variant === "full";
+  const byAccuracy = showSort && sortBy === "accuracy";
+
+  const ordered = byAccuracy
+    ? rows
+        .slice()
+        .sort(
+          (a, b) =>
+            b.accuracy - a.accuracy ||
+            b.decided - a.decided ||
+            b.correct - a.correct ||
+            a.display_name.localeCompare(b.display_name)
+        )
+        .map((row, index) => ({ ...row, rank: index + 1 }))
+    : rows;
 
   const body = (
     <>
@@ -21,10 +42,32 @@ export function Leaderboard({
           <Trophy size={20} />
         </span>
         <h2>Leaderboard</h2>
+        {showSort ? (
+          <div className="lb-sort" role="tablist" aria-label="Sort leaderboard">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={sortBy === "points"}
+              className={`lb-sort-btn ${sortBy === "points" ? "active" : ""}`}
+              onClick={() => setSortBy("points")}
+            >
+              Points
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={sortBy === "accuracy"}
+              className={`lb-sort-btn ${sortBy === "accuracy" ? "active" : ""}`}
+              onClick={() => setSortBy("accuracy")}
+            >
+              Accuracy
+            </button>
+          </div>
+        ) : null}
       </div>
       <div className="lb">
-        {rows.length ? (
-          rows.map((row) => (
+        {ordered.length ? (
+          ordered.map((row) => (
             <div
               className={`lb-row ${onSelect ? "clickable" : ""} ${
                 row.user_id === currentUserId ? "me" : ""
@@ -57,13 +100,13 @@ export function Leaderboard({
                   </span>
                   <span className="sub">
                     {row.decided > 0 ? `${row.correct} of ${row.decided} correct` : "No results yet"}
-                    {row.group_points > 0 ? ` / ${row.group_points} group pts` : ""}
+                    {!byAccuracy && row.group_points > 0 ? ` / ${row.group_points} group pts` : ""}
                   </span>
                 </div>
               </div>
               <div className="pts2 tnum">
-                {row.points}
-                <small>PTS</small>
+                {byAccuracy ? row.accuracy : row.points}
+                <small>{byAccuracy ? "%" : "PTS"}</small>
               </div>
             </div>
           ))
