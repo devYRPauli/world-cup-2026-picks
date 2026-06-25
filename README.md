@@ -11,14 +11,16 @@ This is built for friendly bragging rights only. It does not include odds, payme
 - Admin promotion from configured email addresses
 - Fixture and result import from football-data.org
 - Manual result editing for admins when the API is late or unavailable
-- Matchday tabs for group-stage matches
+- Matchday tabs for group-stage matches that flip to round tabs (Round of 32, Round of 16, and so on) once the group stage finishes
 - Open matches surface first per matchday, locked and finished ones collapse, and a counter shows how many still need a pick
 - Client-side tab switching after the dashboard loads
 - Optimistic pick saving with no full-page refresh
 - Match picks that lock at kickoff
 - Group qualifier picks that lock at the first match in that group
 - Optional third group pick for the 2026 Round of 32 format
+- Winner-only knockout picks from the Round of 32 onward (no draw option), scored like any other match pick
 - Automatic match and group scoring
+- Leaderboard toggle between total points and a standardized accuracy (correct picks over all decided games)
 - Cached shared dashboard data with cache busting after writes
 - Light and dark themes with a responsive mobile nav
 - Vercel Cron result sync at 9:00 AM Eastern time
@@ -47,11 +49,14 @@ The public repo does not contain secrets. Every deployment needs its own Supabas
 
 - Correct match outcome: 3 points
 - Predicted scoreline: optional and worth no points, kept only as an "exact scorelines" bragging stat
+- Knockout pick (Round of 32 onward): pick the winner only, 3 points if correct (extra time and penalties decide the result, so there is no draw option)
 - Group qualifier hit: 5 points per picked team that reaches the Round of 32
 - Wrong match pick: 0 points
 - Wrong group qualifier pick: 0 points
 
 Leaderboard ties sort by total points, then correct match picks, then display name.
+
+The leaderboard can also sort by accuracy. Accuracy is standardized as correct picks over every decided game in the pool, not just the games a member chose to bet on, so skipping a game counts against accuracy the same as a wrong pick.
 
 After changing the scoring formula, run **Admin → Recalculate scores** once, since points are stored on each prediction row rather than computed on read.
 
