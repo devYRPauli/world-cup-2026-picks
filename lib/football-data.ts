@@ -1,5 +1,4 @@
 import { getEnv } from "@/lib/env";
-import { isGroupStageMatch } from "@/lib/groups";
 import { recalculateGroupPredictions, recalculateManyMatches } from "@/lib/results";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { MatchRow, MatchStatus, Pick } from "@/lib/types";
@@ -75,9 +74,9 @@ export async function syncWorldCupMatches() {
   const rows = (payload.matches ?? []).map(mapFootballDataMatch);
   const supabase = getSupabaseAdminClient();
 
-  // Snapshot the stored result fields before writing, so we only recalculate the
-  // matches whose result actually changed this sync. Untouched finished matches
-  // keep their already-correct prediction scores.
+  // Snapshot the stored result fields before writing, so we can report how many
+  // matches actually changed this sync. Scoring itself is recomputed in full
+  // below, so the sync stays authoritative regardless of this count.
   const { data: priorRows, error: priorError } = await supabase
     .from("matches")
     .select("external_id, status, home_score, away_score, result_winner")
@@ -109,12 +108,12 @@ export async function syncWorldCupMatches() {
     return !prior || matchResultChanged(prior, match);
   });
 
-  const recalculated = await recalculateManyMatches(changed.map((match) => match.id));
-
-  // Group bonus only depends on knockout fixtures appearing or changing, so skip
-  // the group recalc unless a non-group-stage match changed this sync.
-  const knockoutChanged = changed.some((match) => !isGroupStageMatch(match));
-  const groupRecalculated = knockoutChanged ? await recalculateGroupPredictions() : 0;
+  // Recompute every match and the group bonus on every sync so the result is
+  // always fully authoritative: a sync that failed midway can't leave stale
+  // scores behind, and the group bonus updates the moment the knockout fixtures
+  // receive their real teams. The `changed` count above is reporting only.
+  const recalculated = await recalculateManyMatches((data ?? []).map((match) => match.id));
+  const groupRecalculated = await recalculateGroupPredictions();
 
   return {
     imported: rows.length,
