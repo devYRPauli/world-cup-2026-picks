@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { LogIn, UserPlus } from "lucide-react";
 import { signInAction, signUpAction } from "@/app/auth/actions";
+import { BrandLogo } from "@/components/brand-logo";
 import { SubmitButton } from "@/components/submit-button";
 
 export function AuthForm({
@@ -20,7 +21,9 @@ export function AuthForm({
   return (
     <div className="auth-panel">
       <div className="brand">
-        <span className="mark" aria-hidden="true">26</span>
+        <span className="mark" aria-hidden="true">
+          <BrandLogo />
+        </span>
         <span>
           <span className="t1">World Cup 2026 Picks</span>
         </span>

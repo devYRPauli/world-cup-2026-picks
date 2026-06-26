@@ -1,3 +1,4 @@
+import { BrandLogo } from "@/components/brand-logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export function SetupScreen({ missing }: { missing: string[] }) {
@@ -8,7 +9,9 @@ export function SetupScreen({ missing }: { missing: string[] }) {
       </div>
       <section className="setup-panel">
         <div className="brand">
-          <span className="mark" aria-hidden="true">26</span>
+          <span className="mark" aria-hidden="true">
+            <BrandLogo />
+          </span>
           <span>
             <span className="t1">World Cup 2026 Picks</span>
           </span>

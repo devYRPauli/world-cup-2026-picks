@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Home, LayoutGrid, LogOut, Menu, ShieldCheck, Trophy, X } from "lucide-react";
 import { signOutAction } from "@/app/auth/actions";
+import { BrandLogo } from "@/components/brand-logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { ProfileRow } from "@/lib/types";
 
@@ -151,7 +152,9 @@ export function AppHeader({
 function BrandMark() {
   return (
     <>
-      <span className="mark" aria-hidden="true">26</span>
+      <span className="mark" aria-hidden="true">
+        <BrandLogo />
+      </span>
       <span className="t1">World Cup 2026 Picks</span>
     </>
   );
