@@ -199,6 +199,13 @@ function buildStandings(
       continue;
     }
 
+    // Group bonus only counts once the full Round of 32 is resolved. is_scored is
+    // set true by recalculateGroupPredictions only when all 32 advancers are known,
+    // so partially-seeded qualifiers (mid-group-stage) never move the leaderboard.
+    if (!prediction.is_scored) {
+      continue;
+    }
+
     row.group_points += prediction.points;
     row.group_hits += prediction.points / 5;
   }

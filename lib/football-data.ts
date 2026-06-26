@@ -74,9 +74,8 @@ export async function syncWorldCupMatches() {
   const rows = (payload.matches ?? []).map(mapFootballDataMatch);
   const supabase = getSupabaseAdminClient();
 
-  // Snapshot the stored result fields before writing, so we can report how many
-  // matches actually changed this sync. Scoring itself is recomputed in full
-  // below, so the sync stays authoritative regardless of this count.
+  // Snapshot the stored result fields before writing, so we can tell which matches
+  // actually changed this sync and recompute only those.
   const { data: priorRows, error: priorError } = await supabase
     .from("matches")
     .select("external_id, status, home_score, away_score, result_winner")
@@ -108,12 +107,13 @@ export async function syncWorldCupMatches() {
     return !prior || matchResultChanged(prior, match);
   });
 
-  // Recompute every match and the group bonus on every sync so the result is
-  // always fully authoritative: a sync that failed midway can't leave stale
-  // scores behind, and the group bonus updates the moment the knockout fixtures
-  // receive their real teams. The `changed` count above is reporting only.
-  const recalculated = await recalculateManyMatches((data ?? []).map((match) => match.id));
-  const groupRecalculated = await recalculateGroupPredictions();
+  // Recompute only the matches whose result moved this sync, so a steady-state sync
+  // does no match-scoring work. The group bonus still runs every sync (knockout teams
+  // can be seeded without a match-result change) but is cheap: it reuses the matches
+  // just fetched and only writes rows that actually change. Use Admin -> Recalculate
+  // scores to force a full rebuild after a formula change or a partial failure.
+  const recalculated = await recalculateManyMatches(changed.map((match) => match.id));
+  const groupRecalculated = await recalculateGroupPredictions(data ?? []);
 
   return {
     imported: rows.length,

@@ -78,19 +78,25 @@ export async function recalculateManyMatches(matchIds: string[]) {
   return counts.reduce((sum, count) => sum + count, 0);
 }
 
-export async function recalculateGroupPredictions() {
+export async function recalculateGroupPredictions(preloadedMatches?: MatchRow[]) {
   const supabase = getSupabaseAdminClient();
-  const { data: matches, error: matchesError } = await supabase
-    .from("matches")
-    .select("*")
-    .order("starts_at", { ascending: true })
-    .returns<MatchRow[]>();
 
-  if (matchesError) {
-    throw new Error(matchesError.message);
+  let matches = preloadedMatches;
+  if (!matches) {
+    const { data, error: matchesError } = await supabase
+      .from("matches")
+      .select("*")
+      .order("starts_at", { ascending: true })
+      .returns<MatchRow[]>();
+
+    if (matchesError) {
+      throw new Error(matchesError.message);
+    }
+
+    matches = data ?? [];
   }
 
-  const advanced = new Set(getAdvancedTeams(matches ?? []));
+  const advanced = new Set(getAdvancedTeams(matches));
   const bracketResolved = advanced.size >= ROUND_OF_32_SIZE;
 
   const { data: predictions, error: predictionsError } = await supabase
@@ -106,29 +112,33 @@ export async function recalculateGroupPredictions() {
     throw new Error(predictionsError.message);
   }
 
-  let touched = 0;
+  // Only write rows whose stored values actually change, so a steady-state sync
+  // (no new advancers) issues zero updates instead of rewriting every row.
+  const pending = (predictions ?? [])
+    .map((prediction) => {
+      const picks = [
+        prediction.picked_team_1,
+        prediction.picked_team_2,
+        prediction.picked_team_3
+      ].filter((team): team is string => Boolean(team));
 
-  for (const prediction of predictions ?? []) {
-    const picks = [
-      prediction.picked_team_1,
-      prediction.picked_team_2,
-      prediction.picked_team_3
-    ].filter((team): team is string => Boolean(team));
+      return { prediction, points: scoreAdvancers(picks, advanced) };
+    })
+    .filter(
+      ({ prediction, points }) =>
+        prediction.points !== points || prediction.is_scored !== bracketResolved
+    );
 
+  await mapWithConcurrency(pending, RECALC_CONCURRENCY, async ({ prediction, points }) => {
     const { error } = await supabase
       .from("group_predictions")
-      .update({
-        points: scoreAdvancers(picks, advanced),
-        is_scored: bracketResolved
-      })
+      .update({ points, is_scored: bracketResolved })
       .eq("id", prediction.id);
 
     if (error) {
       throw new Error(error.message);
     }
+  });
 
-    touched += 1;
-  }
-
-  return touched;
+  return pending.length;
 }
