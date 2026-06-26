@@ -21,9 +21,7 @@ export function AuthForm({
   return (
     <div className="auth-panel">
       <div className="brand">
-        <span className="mark" aria-hidden="true">
-          <BrandLogo />
-        </span>
+        <BrandLogo />
         <span>
           <span className="t1">World Cup 2026 Picks</span>
         </span>

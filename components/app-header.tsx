@@ -152,9 +152,7 @@ export function AppHeader({
 function BrandMark() {
   return (
     <>
-      <span className="mark" aria-hidden="true">
-        <BrandLogo />
-      </span>
+      <BrandLogo />
       <span className="t1">World Cup 2026 Picks</span>
     </>
   );
