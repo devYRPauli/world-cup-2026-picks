@@ -1,4 +1,10 @@
-import type { MatchRow, Pick, PredictionRow } from "@/lib/types";
+import type { MatchRow, Pick } from "@/lib/types";
+
+type ScorablePick = {
+  pick: Pick;
+  predicted_home_score: number | null;
+  predicted_away_score: number | null;
+};
 
 function resolveWinner(match: PickableMatch): Pick | null {
   if (match.result_winner) {
@@ -20,7 +26,8 @@ function resolveWinner(match: PickableMatch): Pick | null {
   return "draw";
 }
 
-export function scorePrediction(prediction: PredictionRow, match: MatchRow) {
+export function scorePrediction(prediction: ScorablePick, match: MatchRow) {
+  // Only finished matches score. LIVE/scheduled stay unscored (isCorrect: null).
   if (match.status !== "FINISHED") {
     return { points: 0, isCorrect: null, exactScore: false };
   }

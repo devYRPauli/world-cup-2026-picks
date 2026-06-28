@@ -5,7 +5,7 @@ import { CalendarDays, Check, Lock, Pencil } from "lucide-react";
 import { savePredictionAction } from "@/app/predictions/actions";
 import { StatusPill } from "@/components/status-pill";
 import { formatDateTime, isMatchLocked, minutesUntil, toTitleCase } from "@/lib/format";
-import { pickLabel } from "@/lib/scoring";
+import { pickLabel, scorePrediction } from "@/lib/scoring";
 import { isKnockout, roundLabel } from "@/lib/groups";
 import type { MatchPredictionStats, MatchRow, Pick, PredictionRow } from "@/lib/types";
 
@@ -13,7 +13,6 @@ type SavedPick = {
   pick: Pick;
   predicted_home_score: number | null;
   predicted_away_score: number | null;
-  points: number;
 };
 
 function toSaved(prediction?: PredictionRow): SavedPick | null {
@@ -21,8 +20,7 @@ function toSaved(prediction?: PredictionRow): SavedPick | null {
     ? {
         pick: prediction.pick,
         predicted_home_score: prediction.predicted_home_score,
-        predicted_away_score: prediction.predicted_away_score,
-        points: prediction.points
+        predicted_away_score: prediction.predicted_away_score
       }
     : null;
 }
@@ -56,8 +54,7 @@ export function MatchCard({
     const optimistic: SavedPick = {
       pick,
       predicted_home_score: parseIntOrNull(formData.get("predicted_home_score")),
-      predicted_away_score: parseIntOrNull(formData.get("predicted_away_score")),
-      points: 0
+      predicted_away_score: parseIntOrNull(formData.get("predicted_away_score"))
     };
     const previous = saved;
 
@@ -165,7 +162,9 @@ export function MatchCard({
             ) : (
               <span>No pick saved</span>
             )}
-            {match.status === "FINISHED" && saved ? <span className="pts">+{saved.points} pts</span> : null}
+            {match.status === "FINISHED" && saved ? (
+              <span className="pts">+{scorePrediction(saved, match).points} pts</span>
+            ) : null}
           </div>
         ) : (
           <div className="saved">
