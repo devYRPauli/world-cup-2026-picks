@@ -26,26 +26,24 @@ type GlobalDashboard = {
   groupPicksAvailable: boolean;
 };
 
-// Supabase caps a single response at 1000 rows, so page through to read them all
-// (there are already more than 1000 predictions). Without this the leaderboard
-// silently drops rows, and an unstable order made it drop a different set each
-// request - undercounting picks and making the standings flip-flop.
-async function fetchAllPredictions(
-  supabase: ReturnType<typeof getSupabaseAdminClient>
-): Promise<PredictionRow[]> {
+// Supabase caps a single response at 1000 rows, so page through any table that can
+// grow past that (predictions already does; group_predictions and profiles scale
+// with members). Reading a growing table with a plain .select() silently drops
+// rows, and an unstable order drops a different set each request - which undercounts
+// picks and makes the standings flip-flop. Each page must use a stable order (a
+// unique tiebreak) so the windows stay disjoint.
+type PageError = { message: string; code?: string } | null;
+
+async function fetchAllRows<T>(
+  buildPage: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: PageError }>
+): Promise<{ data: T[]; error: PageError }> {
   const pageSize = 1000;
-  const rows: PredictionRow[] = [];
+  const rows: T[] = [];
 
   for (let from = 0; ; from += pageSize) {
-    const { data, error } = await supabase
-      .from("predictions")
-      .select("*")
-      .order("id", { ascending: true })
-      .range(from, from + pageSize - 1)
-      .returns<PredictionRow[]>();
-
+    const { data, error } = await buildPage(from, from + pageSize - 1);
     if (error) {
-      throw new Error(error.message);
+      return { data: rows, error };
     }
 
     const page = data ?? [];
@@ -56,7 +54,7 @@ async function fetchAllPredictions(
     }
   }
 
-  return rows;
+  return { data: rows, error: null };
 }
 
 // Deduped per request only (React cache), never cached across requests. The
@@ -66,15 +64,38 @@ async function fetchAllPredictions(
 const loadGlobalDashboard = cache(
   async (): Promise<GlobalDashboard> => {
     const supabase = getSupabaseAdminClient();
-    const [matchesResult, predictions, profilesResult, groupPredictionsResult] = await Promise.all([
-      supabase.from("matches").select("*").order("starts_at", { ascending: true }).returns<MatchRow[]>(),
-      fetchAllPredictions(supabase),
-      supabase.from("profiles").select("*").order("display_name", { ascending: true }).returns<ProfileRow[]>(),
-      supabase.from("group_predictions").select("*").returns<GroupPredictionRow[]>()
+    const [matchesResult, predictionsResult, profilesResult, groupPredictionsResult] = await Promise.all([
+      fetchAllRows<MatchRow>((from, to) =>
+        supabase
+          .from("matches")
+          .select("*")
+          .order("starts_at", { ascending: true })
+          .order("id", { ascending: true })
+          .range(from, to)
+          .returns<MatchRow[]>()
+      ),
+      fetchAllRows<PredictionRow>((from, to) =>
+        supabase.from("predictions").select("*").order("id", { ascending: true }).range(from, to).returns<PredictionRow[]>()
+      ),
+      fetchAllRows<ProfileRow>((from, to) =>
+        supabase
+          .from("profiles")
+          .select("*")
+          .order("display_name", { ascending: true })
+          .order("id", { ascending: true })
+          .range(from, to)
+          .returns<ProfileRow[]>()
+      ),
+      fetchAllRows<GroupPredictionRow>((from, to) =>
+        supabase.from("group_predictions").select("*").order("id", { ascending: true }).range(from, to).returns<GroupPredictionRow[]>()
+      )
     ]);
 
     if (matchesResult.error) {
       throw new Error(matchesResult.error.message);
+    }
+    if (predictionsResult.error) {
+      throw new Error(predictionsResult.error.message);
     }
     if (profilesResult.error) {
       throw new Error(profilesResult.error.message);
@@ -85,9 +106,10 @@ const loadGlobalDashboard = cache(
       throw new Error(groupPredictionsResult.error.message);
     }
 
-    const matches = matchesResult.data ?? [];
-    const profiles = profilesResult.data ?? [];
-    const groupPredictions = groupPredictionsMissing ? [] : groupPredictionsResult.data ?? [];
+    const matches = matchesResult.data;
+    const predictions = predictionsResult.data;
+    const profiles = profilesResult.data;
+    const groupPredictions = groupPredictionsMissing ? [] : groupPredictionsResult.data;
 
     const statsByMatch: Record<string, MatchPredictionStats> = {};
     for (const prediction of predictions) {
