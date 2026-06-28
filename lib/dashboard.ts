@@ -1,4 +1,4 @@
-import { unstable_cache } from "next/cache";
+import { cache } from "react";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { buildGroups, getAdvancedTeams } from "@/lib/groups";
 import type {
@@ -27,7 +27,11 @@ type GlobalDashboard = {
   groupPicksAvailable: boolean;
 };
 
-const loadGlobalDashboard = unstable_cache(
+// Deduped per request only (React cache), never cached across requests. The
+// page is force-dynamic, so every load reads fresh from Postgres. A persistent
+// unstable_cache here served stale snapshots that revalidateTag did not reliably
+// purge on Vercel, so freshly-saved picks did not show up on refresh.
+const loadGlobalDashboard = cache(
   async (): Promise<GlobalDashboard> => {
     const supabase = getSupabaseAdminClient();
     const [matchesResult, predictionsResult, profilesResult, groupPredictionsResult] = await Promise.all([
@@ -84,9 +88,7 @@ const loadGlobalDashboard = unstable_cache(
       nextMatch,
       groupPicksAvailable: !groupPredictionsMissing
     };
-  },
-  ["dashboard-global-v2"],
-  { tags: [DASHBOARD_TAG], revalidate: 60 }
+  }
 );
 
 export async function getDashboardData(currentUserId: string) {
