@@ -1,9 +1,8 @@
 "use server";
 
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
-import { DASHBOARD_TAG } from "@/lib/dashboard";
 import { isKnockout } from "@/lib/groups";
 import type { MatchRow, Pick } from "@/lib/types";
 
@@ -63,7 +62,6 @@ export async function savePredictionAction(formData: FormData): Promise<SaveResu
     return { ok: false, error: error.message };
   }
 
-  revalidateTag(DASHBOARD_TAG);
   revalidatePath("/");
   return { ok: true };
 }

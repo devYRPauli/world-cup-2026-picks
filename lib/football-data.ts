@@ -1,17 +1,6 @@
 import { getEnv } from "@/lib/env";
-import { recalculateGroupPredictions, recalculateManyMatches } from "@/lib/results";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
-import type { MatchRow, MatchStatus, Pick } from "@/lib/types";
-
-// `Pick` here is the imported match-pick type, which shadows the TS `Pick<>`
-// utility — so this snapshot type is spelled out explicitly.
-type PriorResult = {
-  external_id: string | null;
-  status: MatchStatus;
-  home_score: number | null;
-  away_score: number | null;
-  result_winner: Pick | null;
-};
+import type { MatchStatus, Pick } from "@/lib/types";
 
 type FootballDataMatch = {
   id: number;
@@ -74,62 +63,16 @@ export async function syncWorldCupMatches() {
   const rows = (payload.matches ?? []).map(mapFootballDataMatch);
   const supabase = getSupabaseAdminClient();
 
-  // Snapshot the stored result fields before writing, so we can tell which matches
-  // actually changed this sync and recompute only those.
-  const { data: priorRows, error: priorError } = await supabase
-    .from("matches")
-    .select("external_id, status, home_score, away_score, result_winner")
-    .returns<PriorResult[]>();
-
-  if (priorError) {
-    throw new Error(priorError.message);
-  }
-
-  const priorByExternalId = new Map<string, PriorResult>();
-  for (const row of priorRows ?? []) {
-    if (row.external_id) {
-      priorByExternalId.set(row.external_id, row);
-    }
-  }
-
-  const { data, error } = await supabase
-    .from("matches")
-    .upsert(rows, { onConflict: "external_id" })
-    .select("*")
-    .returns<MatchRow[]>();
+  // Matches are the source of truth for fixtures, scores, and results. Scoring is
+  // computed on read from these rows (see lib/dashboard.ts), so the sync only has
+  // to upsert the latest match data - there is nothing to recalculate.
+  const { error } = await supabase.from("matches").upsert(rows, { onConflict: "external_id" });
 
   if (error) {
     throw new Error(error.message);
   }
 
-  const changed = (data ?? []).filter((match) => {
-    const prior = match.external_id ? priorByExternalId.get(match.external_id) : undefined;
-    return !prior || matchResultChanged(prior, match);
-  });
-
-  // Recompute only the matches whose result moved this sync, so a steady-state sync
-  // does no match-scoring work. The group bonus still runs every sync (knockout teams
-  // can be seeded without a match-result change) but is cheap: it reuses the matches
-  // just fetched and only writes rows that actually change. Use Admin -> Recalculate
-  // scores to force a full rebuild after a formula change or a partial failure.
-  const recalculated = await recalculateManyMatches(changed.map((match) => match.id));
-  const groupRecalculated = await recalculateGroupPredictions(data ?? []);
-
-  return {
-    imported: rows.length,
-    changed: changed.length,
-    recalculated,
-    groupRecalculated
-  };
-}
-
-function matchResultChanged(prior: PriorResult, next: MatchRow) {
-  return (
-    prior.status !== next.status ||
-    prior.home_score !== next.home_score ||
-    prior.away_score !== next.away_score ||
-    prior.result_winner !== next.result_winner
-  );
+  return { imported: rows.length };
 }
 
 function mapFootballDataMatch(match: FootballDataMatch) {

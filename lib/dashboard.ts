@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
-import { buildGroups, getAdvancedTeams, scoreAdvancers } from "@/lib/groups";
+import { buildGroups, getAdvancedTeams, isKnockout, scoreAdvancers } from "@/lib/groups";
 import { scorePrediction } from "@/lib/scoring";
 import type {
   GroupPredictionRow,
@@ -12,8 +12,6 @@ import type {
   ProfileRow,
   ProfileStats
 } from "@/lib/types";
-
-export const DASHBOARD_TAG = "dashboard";
 
 type GlobalDashboard = {
   matches: MatchRow[];
@@ -195,6 +193,9 @@ function buildStandings(
       accuracy: 0,
       exact_scores: 0,
       group_hits: 0,
+      knockout_points: 0,
+      knockout_correct: 0,
+      knockout_decided: 0,
       rank: 0
     });
   }
@@ -219,6 +220,15 @@ function buildStandings(
 
       if (score.isCorrect) {
         row.correct += 1;
+      }
+
+      // Knockout-only tally for the separate Round-of-32-onward leaderboard view.
+      if (match && isKnockout(match)) {
+        row.knockout_decided += 1;
+        row.knockout_points += score.points;
+        if (score.isCorrect) {
+          row.knockout_correct += 1;
+        }
       }
     }
 

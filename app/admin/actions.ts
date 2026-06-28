@@ -1,15 +1,9 @@
 "use server";
 
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireCurrentProfile } from "@/lib/auth";
-import { DASHBOARD_TAG } from "@/lib/dashboard";
 import { syncWorldCupMatches } from "@/lib/football-data";
-import {
-  recalculateGroupPredictions,
-  recalculateManyMatches,
-  recalculateMatchPredictions
-} from "@/lib/results";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { MatchStatus, Pick } from "@/lib/types";
 
@@ -26,37 +20,9 @@ export async function syncMatchesAction() {
     redirect(`/admin?error=${encodeURIComponent(getErrorMessage(error))}`);
   }
 
-  revalidateTag(DASHBOARD_TAG);
   revalidatePath("/");
   revalidatePath("/admin");
-  redirect(
-    `/admin?message=${encodeURIComponent(
-      `Synced ${result.imported} matches; recalculated ${result.recalculated} match picks and ${result.groupRecalculated} group picks.`
-    )}`
-  );
-}
-
-export async function recalculateScoresAction() {
-  await requireAdmin();
-
-  const supabase = getSupabaseAdminClient();
-  const { data, error } = await supabase.from("matches").select("id").returns<{ id: string }[]>();
-
-  if (error) {
-    redirect(`/admin?error=${encodeURIComponent(error.message)}`);
-  }
-
-  const matchPicks = await recalculateManyMatches((data ?? []).map((row) => row.id));
-  const groupPicks = await recalculateGroupPredictions();
-
-  revalidateTag(DASHBOARD_TAG);
-  revalidatePath("/");
-  revalidatePath("/admin");
-  redirect(
-    `/admin?message=${encodeURIComponent(
-      `Recalculated ${matchPicks} match picks and ${groupPicks} group picks.`
-    )}`
-  );
+  redirect(`/admin?message=${encodeURIComponent(`Synced ${result.imported} matches.`)}`);
 }
 
 export async function updateMatchResultAction(formData: FormData) {
@@ -88,10 +54,6 @@ export async function updateMatchResultAction(formData: FormData) {
     redirect(`/admin?error=${encodeURIComponent(error.message)}`);
   }
 
-  await recalculateMatchPredictions(matchId);
-  await recalculateGroupPredictions();
-
-  revalidateTag(DASHBOARD_TAG);
   revalidatePath("/");
   revalidatePath("/admin");
   redirect("/admin?message=Result%20updated.");

@@ -19,9 +19,9 @@ This is built for friendly bragging rights only. It does not include odds, payme
 - Group qualifier picks that lock at the first match in that group
 - Optional third group pick for the 2026 Round of 32 format
 - Winner-only knockout picks from the Round of 32 onward (no draw option), scored like any other match pick
-- Automatic match and group scoring
-- Leaderboard toggle between total points and a standardized accuracy (correct picks over all decided games)
-- Cached shared dashboard data with cache busting after writes
+- Match and group scoring computed live from results, never stored
+- Leaderboard views: total points, standardized accuracy (correct picks over all decided games), and a knockout-only board (Round of 32 onward)
+- Live dashboard data read fresh on every request
 - Light and dark themes with a responsive mobile nav
 - Vercel Cron result sync at 9:00 AM Eastern time
 
@@ -41,7 +41,7 @@ This is built for friendly bragging rights only. It does not include odds, payme
 4. Members save match picks and group qualifier picks.
 5. Picks lock automatically when the relevant match or group starts.
 6. Results are imported by cron or updated manually by an admin.
-7. The app recalculates points and refreshes the leaderboard.
+7. The leaderboard updates automatically: scores are computed on read from the stored match results, so there is nothing to recalculate.
 
 The public repo does not contain secrets. Every deployment needs its own Supabase project, Supabase keys, and optional football-data.org token.
 
@@ -56,9 +56,9 @@ The public repo does not contain secrets. Every deployment needs its own Supabas
 
 Leaderboard ties sort by total points, then correct match picks, then display name.
 
-The leaderboard can also sort by accuracy. Accuracy is standardized as correct picks over every decided game in the pool, not just the games a member chose to bet on, so skipping a game counts against accuracy the same as a wrong pick.
+The leaderboard has three views. **Points** is the full total (match picks, group qualifiers, and knockout). **Accuracy** is standardized as correct picks over every decided game in the pool, not just the games a member chose to bet on, so skipping a game counts against accuracy the same as a wrong pick. **Knockout** ranks by knockout points only, counting Round of 32 picks onward.
 
-After changing the scoring formula, run **Admin → Recalculate scores** once, since points are stored on each prediction row rather than computed on read.
+Scores are computed on read from the stored match results (only finished matches count), so a scoring change takes effect immediately - there is nothing to recalculate.
 
 ## 2026 Group Bonus
 
@@ -154,7 +154,6 @@ Admins can:
 
 - Sync fixtures and results from football-data.org
 - Edit match status, scores, and winners manually
-- Trigger recalculation for affected match and group predictions
 
 ## Automated Result Sync
 
@@ -178,7 +177,7 @@ curl -H "Authorization: Bearer YOUR_CRON_SECRET" \
   https://your-domain.vercel.app/api/cron/sync-results
 ```
 
-The endpoint imports current fixtures/results, recalculates finished match picks, recalculates group picks when the Round of 32 bracket is known, and invalidates the dashboard cache.
+The endpoint imports current fixtures and results into the `matches` table. Scoring is computed on read from those results, so no recalculation step is needed.
 
 ## Existing database updates
 

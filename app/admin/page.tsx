@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
-import { Calculator, RefreshCcw } from "lucide-react";
-import { recalculateScoresAction, syncMatchesAction } from "@/app/admin/actions";
+import { RefreshCcw } from "lucide-react";
+import { syncMatchesAction } from "@/app/admin/actions";
 import { AppHeader } from "@/components/app-header";
 import { AdminResultForm } from "@/components/admin-result-form";
 import { SetupScreen } from "@/components/setup-screen";
@@ -47,11 +47,6 @@ export default async function AdminPage({
           <h1>Match control</h1>
         </div>
         <div className="head-actions">
-          <form action={recalculateScoresAction}>
-            <SubmitButton pendingLabel="Recalculating..." icon={<Calculator size={17} />} className="ghost">
-              Recalculate scores
-            </SubmitButton>
-          </form>
           <form action={syncMatchesAction}>
             <SubmitButton pendingLabel="Syncing..." icon={<RefreshCcw size={17} />}>
               Sync fixtures

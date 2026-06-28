@@ -75,6 +75,11 @@ export type LeaderboardRow = {
   accuracy: number;
   exact_scores: number;
   group_hits: number;
+  // Knockout-only tally (Round of 32 onward): a separate leaderboard view that
+  // ignores group-stage picks and the group bonus.
+  knockout_points: number;
+  knockout_correct: number;
+  knockout_decided: number;
   rank: number;
 };
 

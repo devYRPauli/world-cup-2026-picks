@@ -1,8 +1,7 @@
 "use server";
 
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { buildGroups } from "@/lib/groups";
-import { DASHBOARD_TAG } from "@/lib/dashboard";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { MatchRow } from "@/lib/types";
@@ -75,7 +74,6 @@ export async function saveGroupPredictionAction(formData: FormData): Promise<Sav
     return { ok: false, error: error.message };
   }
 
-  revalidateTag(DASHBOARD_TAG);
   revalidatePath("/");
   return { ok: true };
 }
