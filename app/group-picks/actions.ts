@@ -63,9 +63,7 @@ export async function saveGroupPredictionAction(formData: FormData): Promise<Sav
       user_id: user.id,
       picked_team_1: pickedTeam1,
       picked_team_2: pickedTeam2,
-      picked_team_3: pickedTeam3 || null,
-      points: 0,
-      is_scored: false
+      picked_team_3: pickedTeam3 || null
     },
     { onConflict: "group_name,user_id" }
   );

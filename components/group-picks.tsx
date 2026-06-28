@@ -68,6 +68,10 @@ function GroupCard({
 
   const showForm = !group.is_locked && (editing || picks.length === 0);
   const bracketKnown = advanced.size > 0;
+  // Group bonus computed on read, matching the leaderboard: 5 pts per advancing
+  // pick, only once the full Round of 32 (32 teams) is resolved.
+  const bracketResolved = advanced.size >= 32;
+  const scoredPoints = picks.filter((team) => advanced.has(team)).length * 5;
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -131,7 +135,7 @@ function GroupCard({
         <div className="picks-summary locked">
           <div className="picks-summary-head">
             <Lock size={14} /> Your picks
-            {prediction?.is_scored ? <span className="pts">+{prediction.points} pts</span> : null}
+            {bracketResolved ? <span className="pts">+{scoredPoints} pts</span> : null}
           </div>
           {picks.length ? (
             <ul className="pick-chips">
