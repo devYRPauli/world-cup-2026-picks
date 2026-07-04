@@ -177,7 +177,13 @@ export function DashboardClient({
       </section>
 
       {tab === "leaderboard" ? (
-        <Leaderboard rows={leaderboard} currentUserId={userId} variant="full" onSelect={setProfileId} />
+        <Leaderboard
+          rows={leaderboard}
+          currentUserId={userId}
+          variant="full"
+          onSelect={setProfileId}
+          availableRounds={knockoutRounds.filter((entry) => entry.teamsSet)}
+        />
       ) : tab === "groups" ? (
         <section>
           <p className="section-eyebrow">Group qualifier picks</p>

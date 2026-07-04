@@ -875,6 +875,11 @@ button {
   padding: 3px;
 }
 
+.lb-rounds {
+  margin: 10px 0 2px;
+  flex-wrap: wrap;
+}
+
 .lb-sort-btn {
   padding: 5px 12px;
   border-radius: 999px;

@@ -61,6 +61,8 @@ export type GroupPredictionRow = {
   updated_at: string;
 };
 
+export type RoundTally = { points: number; correct: number; decided: number };
+
 export type LeaderboardRow = {
   user_id: string;
   display_name: string;
@@ -76,10 +78,13 @@ export type LeaderboardRow = {
   exact_scores: number;
   group_hits: number;
   // Knockout-only tally (Round of 32 onward): a separate leaderboard view that
-  // ignores group-stage picks and the group bonus.
+  // ignores group-stage picks and the group bonus. knockout_* is the aggregate
+  // across every knockout round; knockout_by_round breaks the same tally out per
+  // stage (keyed by the match stage, e.g. "LAST_16") for the per-round filters.
   knockout_points: number;
   knockout_correct: number;
   knockout_decided: number;
+  knockout_by_round: Record<string, RoundTally>;
   rank: number;
 };
 

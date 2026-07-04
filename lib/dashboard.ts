@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
-import { buildGroups, getAdvancedTeams, isKnockout, scoreAdvancers } from "@/lib/groups";
+import { buildGroups, getAdvancedTeams, isKnockout, KNOCKOUT_ROUNDS, scoreAdvancers } from "@/lib/groups";
 import { scorePrediction } from "@/lib/scoring";
 import type {
   GroupPredictionRow,
@@ -218,6 +218,7 @@ function buildStandings(
       knockout_points: 0,
       knockout_correct: 0,
       knockout_decided: 0,
+      knockout_by_round: {},
       rank: 0
     });
   }
@@ -250,6 +251,20 @@ function buildStandings(
         row.knockout_points += score.points;
         if (score.isCorrect) {
           row.knockout_correct += 1;
+        }
+
+        // Same tally broken out per knockout round (for the per-round filters).
+        // Only recognized stages get a bucket; the aggregate above still counts
+        // every knockout match either way.
+        const stage = match.stage?.toUpperCase();
+        if (stage && (KNOCKOUT_ROUNDS as readonly string[]).includes(stage)) {
+          const bucket = row.knockout_by_round[stage] ?? { points: 0, correct: 0, decided: 0 };
+          bucket.decided += 1;
+          bucket.points += score.points;
+          if (score.isCorrect) {
+            bucket.correct += 1;
+          }
+          row.knockout_by_round[stage] = bucket;
         }
       }
     }
