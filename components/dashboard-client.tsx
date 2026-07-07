@@ -182,7 +182,7 @@ export function DashboardClient({
           currentUserId={userId}
           variant="full"
           onSelect={setProfileId}
-          availableRounds={knockoutRounds.filter((entry) => entry.teamsSet)}
+          availableRounds={knockoutRounds}
         />
       ) : tab === "groups" ? (
         <section>
