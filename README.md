@@ -2,6 +2,8 @@
 
 A self-hostable World Cup 2026 prediction pool for small groups. Members pick match outcomes, add an optional exact-score guess for bragging rights, choose group-stage qualifiers, and compete on a live leaderboard.
 
+Live instance: https://world-cup-2026-picks.vercel.app (invite-only pool; deploy your own with the steps below).
+
 This is built for friendly bragging rights only. It does not include odds, payments, payouts, or real-money wagering.
 
 ## Features
@@ -20,7 +22,9 @@ This is built for friendly bragging rights only. It does not include odds, payme
 - Optional third group pick for the 2026 Round of 32 format
 - Winner-only knockout picks from the Round of 32 onward (no draw option), scored like any other match pick
 - Match and group scoring computed live from results, never stored
-- Leaderboard views: total points, standardized accuracy (correct picks over all decided games), and a knockout-only board (Round of 32 onward)
+- Leaderboard views: total points, standardized accuracy (correct picks over all decided games), and a knockout-only board (Round of 32 onward) with per-round filters
+- Pool split bars on each match card showing how members picked
+- Member profiles (click a leaderboard row) with current streak, best streak, and exact-scoreline count
 - Live dashboard data read fresh on every request
 - Light and dark themes with a responsive mobile nav
 - Vercel Cron result sync at 9:00 AM Eastern time
@@ -56,7 +60,7 @@ The public repo does not contain secrets. Every deployment needs its own Supabas
 
 Leaderboard ties sort by total points, then correct match picks, then display name.
 
-The leaderboard has three views. **Points** is the full total (match picks, group qualifiers, and knockout). **Accuracy** is standardized as correct picks over every decided game in the pool, not just the games a member chose to bet on, so skipping a game counts against accuracy the same as a wrong pick. **Knockout** ranks by knockout points only, counting Round of 32 picks onward.
+The leaderboard has three views. **Points** is the full total (match picks, group qualifiers, and knockout). **Accuracy** is standardized as correct picks over every decided game in the pool, not just the games a member chose to bet on, so skipping a game counts against accuracy the same as a wrong pick. **Knockout** ranks by knockout points only, counting Round of 32 picks onward, and can be filtered to a single round from the Round of 32 through the final.
 
 Scores are computed on read from the stored match results (only finished matches count), so a scoring change takes effect immediately - there is nothing to recalculate.
 
