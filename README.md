@@ -2,7 +2,7 @@
 
 A self-hostable World Cup 2026 prediction pool for small groups. Members pick match outcomes, add an optional exact-score guess for bragging rights, choose group-stage qualifiers, and compete on a live leaderboard.
 
-Live instance: https://world-cup-2026-picks.vercel.app (invite-only pool; deploy your own with the steps below).
+**Status: archived.** The 2026 tournament is over and the pool that ran on this code has been shut down - the hosted instance and its database no longer exist. The code is complete and self-hostable: follow the setup steps below to run your own pool. The final standings and every pick from the original pool are preserved in [`results/final-results.json`](results/final-results.json).
 
 This is built for friendly bragging rights only. It does not include odds, payments, payouts, or real-money wagering.
 
@@ -64,6 +64,32 @@ The leaderboard has three views. **Points** is the full total (match picks, grou
 
 Scores are computed on read from the stored match results (only finished matches count), so a scoring change takes effect immediately - there is nothing to recalculate.
 
+## Final results of the 2026 pool
+
+The original pool ran the full tournament: 15 members, 104 matches, 1,286 match picks, and 83 group sheets. Spain beat Argentina 1-0 in the final.
+
+| # | Member | Points | Match record | Group pts |
+|---|--------|--------|--------------|-----------|
+| 1 | Yash Raj Pandey | 340 | 70 of 104 | 130 |
+| 2 | Gonzalinho | 335 | 65 of 99 | 140 |
+| 3 | Fernando | 334 | 63 of 104 | 145 |
+| 4 | Amman | 331 | 67 of 101 | 130 |
+| 5 | Sarah | 326 | 62 of 103 | 140 |
+| 6 | Cristhian Ruiz | 307 | 59 of 102 | 130 |
+| 7 | Nicolas Rueda | 300 | 65 of 93 | 105 |
+| 8 | Juliana | 198 | 66 of 99 | 0 |
+| 9 | Patricio | 186 | 62 of 100 | 0 |
+| 10 | Estefania | 178 | 46 of 84 | 40 |
+| 11 | Felipe | 174 | 58 of 84 | 0 |
+| 12 | Ben | 171 | 57 of 94 | 0 |
+| 13 | Raghav Rathi | 103 | 31 of 55 | 10 |
+| 14 | Usman | 93 | 31 of 62 | 0 |
+| 15 | Diego | 3 | 1 of 2 | 0 |
+
+A few things the data showed: the title was decided by 6 points, and by group sheets rather than match picks - six members never filled one in, and the highest-scoring group sheet (145 points) belonged to the member with the lowest accuracy in the top six. Fourteen matches beat the entire pool, including Germany 4-5 Paraguay in the Round of 32, which every single member called for Germany. Draws were badly underpicked: 7 percent of picks against 19 percent of results.
+
+`results/final-results.json` holds the full archive - standings, all 104 results with the pool's success rate per match, every pick by display name, and every group sheet. Emails and user IDs are deliberately excluded.
+
 ## 2026 Group Bonus
 
 The 2026 tournament has 12 groups of four. The top two teams from each group and the eight best third-placed teams reach the Round of 32.
@@ -80,6 +106,16 @@ The app does not try to reimplement every official third-place tiebreaker. Inste
 - `group_predictions`: one group qualifier pick set per member per group
 
 Row Level Security is enabled. Members can read shared match data, update their own profile, and write only their own unlocked picks. Admin-only operations use the Supabase secret key on the server.
+
+### Notes for anyone reading the code
+
+- **Two Supabase clients, chosen deliberately.** `lib/supabase/server.ts` uses the publishable key plus the user's cookies, so it runs *under RLS as the signed-in member* - use it for auth and for member-initiated writes. `lib/supabase/admin.ts` uses the secret key, *bypasses RLS*, and is for reads and writes that span all users (dashboard aggregation, match sync, admin actions). Never hand the admin client or its unfiltered data to a client component.
+- **RLS is the real security boundary.** The policies in `supabase/schema.sql` re-check that a match is still `SCHEDULED` and that `starts_at > now()`. The equivalent checks in the server actions are a UX layer on top, not the enforcement.
+- **A group's deadline is its earliest kickoff**, enforced in three places that must stay in sync: the `is_locked` flag in `lib/groups.ts`, the lock check in `saveGroupPredictionAction`, and the `group_predictions` RLS policy.
+- **Scoring is computed on read, never stored.** `lib/dashboard.ts` reads matches plus predictions and scores them live via `lib/scoring.ts` and `lib/groups.ts`. The `points`, `is_correct`, and `is_scored` columns on `predictions` and `group_predictions` are vestigial leftovers - nothing reads them and nothing should start.
+- **PostgREST caps a response at 1000 rows.** `predictions` exceeded that during the tournament, so it is read with pagination (`fetchAllPredictions`). Reading a growing table with a plain `.select()` silently drops rows and corrupts the leaderboard.
+- **`group_predictions` arrived as a later migration**, so the code treats a Postgres `42P01` (undefined table) error as "feature unavailable" rather than crashing. Keep that guard if you touch group code.
+- **`npm run typecheck` is the only check in the repo.** There is no test runner, linter, or formatter configured.
 
 ## Local setup
 
