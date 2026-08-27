@@ -2,7 +2,10 @@
 
 A self-hostable World Cup 2026 prediction pool for small groups. Members pick match outcomes, add an optional exact-score guess for bragging rights, choose group-stage qualifiers, and compete on a live leaderboard.
 
-**Status: archived.** The 2026 tournament is over and the pool that ran on this code has been shut down - the hosted instance and its database no longer exist. The code is complete and self-hostable: follow the setup steps below to run your own pool. The final standings and every pick from the original pool are preserved in [`results/final-results.json`](results/final-results.json).
+**Status: complete.** The 2026 tournament is over and the original pool has
+finished. The code remains self-hostable: follow the setup steps below to run
+your own pool. The final standings and every pick from the original pool are
+preserved in [`results/final-results.json`](results/final-results.json).
 
 This is built for friendly bragging rights only. It does not include odds, payments, payouts, or real-money wagering.
 
